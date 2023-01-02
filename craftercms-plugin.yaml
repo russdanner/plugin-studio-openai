@@ -1,0 +1,72 @@
+# This file describes a plugin for use in CrafterCMS
+# The version of the format for this file
+descriptorVersion: 2
+
+# Describe the plugin
+plugin:
+  type: site
+  id: org.rd.plugin.openai
+  name: Studio OpenAI
+  tags:
+    - authoring tools
+  version:
+    major: 1
+    minor: 0
+    patch: 0
+  description: A plugin installs OpenAI assisted content authoring assisted features in Crafter Studio
+  documentation: "https://raw.githubusercontent.com/russdanner/plugin-studio-openaif/master/README.md"
+  website:
+    name: OpenAI
+    url: https://github.com/russdanner/plugin-studio-openai
+  media:
+    screenshots:
+      - title: CrafterCMS
+        description: CrafterCMS Plugin for Studio integration with OpenAI
+        url: "https://raw.githubusercontent.com/russdanner/plugin-studio-openai/master/.crafter/logo.png"
+  developer:
+    company:
+      name: Russ Danner
+      email: russdanner@craftercms.com
+      url: https://github.com/russdanner
+  build:
+    id: cafebabe313010a5e0481d6ba87901d0b02716c9
+    date: 2023-01-01T00:00:00Z
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  crafterCmsVersions:
+    - major: 4
+      minor: 0
+      patch: 0
+    - major: 4
+      minor: 0
+      patch: 1
+    - major: 4
+      minor: 0
+      patch: 2
+    - major: 4
+      minor: 0
+      patch: 3
+  crafterCmsEditions:
+    - community
+    - enterprise
+  installation:
+    - type: form-control
+      elementXpath: //control/plugin[pluginId='org.rd.plugin.openai']
+      element:
+        name: control
+        children:
+          - name: plugin
+            children:
+              - name: pluginId
+                value: org.rd.plugin.openai
+              - name: type
+                value: control
+              - name: name
+                value: textgen
+              - name: filename
+                value: main.js
+          - name: icon
+            children:
+              - name: class
+                value: fa-language
