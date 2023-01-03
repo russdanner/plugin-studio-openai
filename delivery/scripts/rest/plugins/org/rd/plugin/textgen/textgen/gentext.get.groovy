@@ -1,4 +1,4 @@
-@Grab(group='com.theokanning.openai-gpt3-java', module='client', version='0.8.1')
+@Grab(group='com.theokanning.openai-gpt3-java', module='client', version='0.8.1', initClass=false)
 
 import com.theokanning.openai.OpenAiService
 import com.theokanning.openai.completion.CompletionRequest
@@ -20,5 +20,5 @@ CompletionRequest completionRequest = CompletionRequest.builder()
         .user("russ.danner@craftercms.com")
         .maxTokens(100)
         .build()
-                
+
 return service.createCompletion(completionRequest).getChoices()
