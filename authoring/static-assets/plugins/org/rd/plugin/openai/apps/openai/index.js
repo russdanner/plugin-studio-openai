@@ -73,13 +73,13 @@ function GenerateContent(props) {
     var dispatch = useDispatch();
     useActiveSiteId();
     useEnv();
-    var label = "Generate Content"; //readonly ? 'View' : 'Edit';
+    var label = 'Generate Content'; //readonly ? 'View' : 'Edit';
     var iconId = item
         ? '@mui/icons-material/PsychologyRounded'
         : '@mui/icons-material/HourglassEmptyOutlined';
     var handleClick = function (event) {
         dispatch(showWidgetDialog({
-            title: "AI Generated Content Assistant",
+            title: 'AI Generated Content Assistant',
             extraProps: props,
             widget: {
                 id: 'org.rd.plugin.openai.dialog'
@@ -126,7 +126,7 @@ function GenerateContentDialog(props) {
         setAsk(event.target.value);
     };
     var copyResult = function () {
-        alert("copy");
+        alert('copy');
     };
     var handleGenerate = function () {
         var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/gentext.json?siteId=").concat(siteId, "&ask=").concat(ask);
@@ -152,7 +152,13 @@ function GenerateContentDialog(props) {
                 React.createElement("ol", null, generatedContent &&
                     Object.values(generatedContent).map(function (content, contentIndex) {
                         return (React.createElement("li", null,
-                            React.createElement(TextField, { sx: { "background-color": "#F8F8F8", "color": "rgb(0, 122, 255)", "width": "90%", "padding-bottom": "10px", "padding-right": "20px", mb: 2 }, value: content, multiline: true }),
+                            React.createElement(TextField, { sx: {
+                                    color: 'rgb(0, 122, 255)',
+                                    width: '90%',
+                                    'padding-bottom': '10px',
+                                    'padding-right': '20px',
+                                    mb: 2
+                                }, value: content, multiline: true }),
                             React.createElement(Button$1, { type: "button", onClick: copyResult, variant: "outlined", sx: { mr: 1 } }, "Copy")));
                     }))))));
 }
