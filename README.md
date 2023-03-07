@@ -1,5 +1,10 @@
-# OpenAI for CrafterCMS Crafter Stuido
-This plugin adds AI based content and asset generation, improvement and analysis capabilities to Crafter Studio.
+# OpenAI for CrafterCMS' Crafter Studio
+This plugin adds AI-based genrative content capabilities to Crafter Studio.
+
+Future enhancements include
+- Image generation
+- Text analysis
+- Text generation based on other site content
 
 # Installation
 

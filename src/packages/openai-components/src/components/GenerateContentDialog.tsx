@@ -6,6 +6,8 @@ import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
 import { green, red } from '@mui/material/colors';
 import { Theme } from '@mui/material/styles';
+import Skeleton from '@mui/material/Skeleton';
+import Box from '@mui/material/Box';
 
 import { Button, DialogActions, DialogContent, DialogContentText, TextField } from '@mui/material';
 
@@ -19,8 +21,50 @@ import { copyToClipboard } from '@craftercms/studio-ui/utils/system';
 import Snackbar from '@mui/material/Snackbar';
 import SnackbarContent from '@mui/material/SnackbarContent';
 import { useSpreadState } from '@craftercms/studio-ui/hooks/useSpreadState';
+import ListItemIcon from '@mui/material/ListItemIcon';
+import ListItemText from '@mui/material/ListItemText';
+import ListItem from '@mui/material/ListItem';
+import List from '@mui/material/List';
 
 import FormControl from '@mui/material/FormControl';
+
+function AnswerSkeletonItem() {
+  //const { classes } = useStyles();
+  //lassName={classes.navItem}
+  //className={classes.typeIcon}
+
+  return (
+    <ListItem style={{ height: '25px' }}>
+      <Skeleton variant="rectangular" width="20px" />
+      <Skeleton variant="text" style={{ margin: '0 10px', width: `${rand(40, 70)}%` }} />
+    </ListItem>
+  );
+}
+
+export function AnswerSkeletonList(props: { numOfItems?: number }) {
+  const { numOfItems = 5 } = props;
+  const items = new Array(numOfItems).fill(null);
+  return (
+    <List component="nav" disablePadding>
+      {items.map((value, i) => (
+        <AnswerSkeletonItem key={i} />
+      ))}
+    </List>
+  );
+}
+
+interface AnswerSkeletonProps {
+  numOfItems?: number;
+  renderBody?: boolean;
+}
+
+const AnswerSkeleton = React.memo(({ numOfItems = 5, renderBody = false }: AnswerSkeletonProps) => (
+  <div>{renderBody && <AnswerSkeletonList numOfItems={numOfItems} />}</div>
+));
+
+export function rand(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1) + min);
+}
 
 export function GenerateContentDialog(props) {
   const notificationInitialState = {
@@ -57,6 +101,8 @@ export function GenerateContentDialog(props) {
   //const { classes } = useStyles();
   const siteId = useActiveSiteId();
   const [error, setError] = useState();
+  const [fetching, setFetching] = useState(false);
+
   const [notificationSettings, setNotificationSettings] = useSpreadState(notificationInitialState);
   const [generatedContent, setGeneratedContent] = useState([]);
   const [ask, setAsk] = React.useState('Write a story');
@@ -75,13 +121,20 @@ export function GenerateContentDialog(props) {
   const handleGenerate = () => {
     let serviceUrl = `${PLUGIN_SERVICE_BASE}/gentext.json?siteId=${siteId}&ask=${ask}`;
 
+    setFetching(true);
+
     get(serviceUrl).subscribe({
       next: (response) => {
         console.log(response.response.result);
+
+        setFetching(false);
+
         setGeneratedContent([...response.response.result]);
       },
       error(e) {
         console.error(e);
+        setFetching(false);
+
         setError(
           e.response?.response ?? ({ code: '?', message: 'Unknown Error. Check browser console.' } as ApiResponse)
         );
@@ -132,6 +185,8 @@ export function GenerateContentDialog(props) {
                 );
               })}
           </ol>
+
+          <AnswerSkeleton numOfItems={5} renderBody={fetching} />
         </DialogContentText>
       </DialogContent>
       <Snackbar

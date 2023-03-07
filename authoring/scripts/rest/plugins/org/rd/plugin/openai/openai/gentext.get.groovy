@@ -24,11 +24,17 @@ def choices = service.createCompletion(completionRequest).getChoices()
 def generatedContent = []
 
 choices.each { choice -> 
+        // All of the answers come as one string (bug in API?)
         def answers = choice.text.split("\n")
 
         answers.each { answer ->
                 if(answer && answer != "") {
+                        // remove number label from each answer
                         def cleanedAnswer = answer.substring(answer.indexOf(". ")+1)
+                        
+                        // Clean quotes off string (may be better way long term to parse answers)
+                        cleanedAnswer = cleanedAnswer.substring(1,cleanedAnswer.length-1)
+                        
                         generatedContent.add(cleanedAnswer)
                 }
         }

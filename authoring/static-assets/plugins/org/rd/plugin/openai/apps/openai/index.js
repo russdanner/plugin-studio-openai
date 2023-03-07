@@ -6,11 +6,14 @@ const IconButton = craftercms.libs.MaterialUI.IconButton && Object.prototype.has
 const Button = craftercms.libs.MaterialUI.Button && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.Button, 'default') ? craftercms.libs.MaterialUI.Button['default'] : craftercms.libs.MaterialUI.Button;
 const SystemIcon = craftercms.components.SystemIcon && Object.prototype.hasOwnProperty.call(craftercms.components.SystemIcon, 'default') ? craftercms.components.SystemIcon['default'] : craftercms.components.SystemIcon;
 const { createAction } = craftercms.libs.ReduxToolkit;
+const Skeleton = craftercms.libs.MaterialUI.Skeleton && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.Skeleton, 'default') ? craftercms.libs.MaterialUI.Skeleton['default'] : craftercms.libs.MaterialUI.Skeleton;
 const CloseIcon = craftercms.utils.constants.components.get('@mui/icons-material/HighlightOffRounded') && Object.prototype.hasOwnProperty.call(craftercms.utils.constants.components.get('@mui/icons-material/HighlightOffRounded'), 'default') ? craftercms.utils.constants.components.get('@mui/icons-material/HighlightOffRounded')['default'] : craftercms.utils.constants.components.get('@mui/icons-material/HighlightOffRounded');
 const { get } = craftercms.utils.ajax;
 const { copyToClipboard } = craftercms.utils.system;
 const Snackbar = craftercms.libs.MaterialUI.Snackbar && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.Snackbar, 'default') ? craftercms.libs.MaterialUI.Snackbar['default'] : craftercms.libs.MaterialUI.Snackbar;
 const SnackbarContent = craftercms.libs.MaterialUI.SnackbarContent && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.SnackbarContent, 'default') ? craftercms.libs.MaterialUI.SnackbarContent['default'] : craftercms.libs.MaterialUI.SnackbarContent;
+const ListItem = craftercms.libs.MaterialUI.ListItem && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.ListItem, 'default') ? craftercms.libs.MaterialUI.ListItem['default'] : craftercms.libs.MaterialUI.ListItem;
+const List = craftercms.libs.MaterialUI.List && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.List, 'default') ? craftercms.libs.MaterialUI.List['default'] : craftercms.libs.MaterialUI.List;
 const FormControl = craftercms.libs.MaterialUI.FormControl && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.FormControl, 'default') ? craftercms.libs.MaterialUI.FormControl['default'] : craftercms.libs.MaterialUI.FormControl;
 
 /*
@@ -144,6 +147,26 @@ function useSpreadState(initialState, init) {
   );
 }
 
+function AnswerSkeletonItem() {
+    //const { classes } = useStyles();
+    //lassName={classes.navItem}
+    //className={classes.typeIcon}
+    return (React.createElement(ListItem, { style: { height: '25px' } },
+        React.createElement(Skeleton, { variant: "rectangular", width: "20px" }),
+        React.createElement(Skeleton, { variant: "text", style: { margin: '0 10px', width: "".concat(rand(40, 70), "%") } })));
+}
+function AnswerSkeletonList(props) {
+    var _a = props.numOfItems, numOfItems = _a === void 0 ? 5 : _a;
+    var items = new Array(numOfItems).fill(null);
+    return (React.createElement(List, { component: "nav", disablePadding: true }, items.map(function (value, i) { return (React.createElement(AnswerSkeletonItem, { key: i })); })));
+}
+var AnswerSkeleton = React.memo(function (_a) {
+    var _b = _a.numOfItems, numOfItems = _b === void 0 ? 5 : _b, _c = _a.renderBody, renderBody = _c === void 0 ? false : _c;
+    return (React.createElement("div", null, renderBody && React.createElement(AnswerSkeletonList, { numOfItems: numOfItems })));
+});
+function rand(min, max) {
+    return Math.floor(Math.random() * (max - min + 1) + min);
+}
 function GenerateContentDialog(props) {
     var notificationInitialState = {
         open: false,
@@ -177,9 +200,10 @@ function GenerateContentDialog(props) {
     //const { classes } = useStyles();
     var siteId = useActiveSiteId();
     var _a = useState(); _a[0]; var setError = _a[1];
-    var _b = useSpreadState(notificationInitialState), notificationSettings = _b[0], setNotificationSettings = _b[1];
-    var _c = useState([]), generatedContent = _c[0], setGeneratedContent = _c[1];
-    var _d = React.useState('Write a story'), ask = _d[0], setAsk = _d[1];
+    var _b = useState(false), fetching = _b[0], setFetching = _b[1];
+    var _c = useSpreadState(notificationInitialState), notificationSettings = _c[0], setNotificationSettings = _c[1];
+    var _d = useState([]), generatedContent = _d[0], setGeneratedContent = _d[1];
+    var _e = React.useState('Write a story'), ask = _e[0], setAsk = _e[1];
     var PLUGIN_SERVICE_BASE = '/studio/api/2/plugin/script/plugins/org/rd/plugin/openai/openai';
     var handleAskChange = function (event) {
         setAsk(event.target.value);
@@ -190,14 +214,17 @@ function GenerateContentDialog(props) {
     };
     var handleGenerate = function () {
         var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/gentext.json?siteId=").concat(siteId, "&ask=").concat(ask);
+        setFetching(true);
         get(serviceUrl).subscribe({
             next: function (response) {
                 console.log(response.response.result);
+                setFetching(false);
                 setGeneratedContent(__spreadArray([], response.response.result, true));
             },
             error: function (e) {
                 var _a, _b;
                 console.error(e);
+                setFetching(false);
                 setError((_b = (_a = e.response) === null || _a === void 0 ? void 0 : _a.response) !== null && _b !== void 0 ? _b : { code: '?', message: 'Unknown Error. Check browser console.' });
             }
         });
@@ -220,7 +247,8 @@ function GenerateContentDialog(props) {
                                     mb: 2
                                 }, value: content, multiline: true }),
                             React.createElement(Button$1, { type: "button", onClick: copyResult, variant: "outlined", sx: { mr: 1 } }, "Copy")));
-                    })))),
+                    })),
+                React.createElement(AnswerSkeleton, { numOfItems: 5, renderBody: fetching }))),
         React.createElement(Snackbar, { anchorOrigin: {
                 vertical: 'top',
                 horizontal: 'right'
