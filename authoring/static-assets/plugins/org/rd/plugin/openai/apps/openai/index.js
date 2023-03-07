@@ -1,12 +1,16 @@
 const React = craftercms.libs.React;
-const { useState } = craftercms.libs.React;
+const { useReducer, useState } = craftercms.libs.React;
 const { useSelector, useDispatch } = craftercms.libs.ReactRedux;
 const { Tooltip, DialogContent, TextField, DialogActions, Button: Button$1, DialogContentText } = craftercms.libs.MaterialUI;
 const IconButton = craftercms.libs.MaterialUI.IconButton && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.IconButton, 'default') ? craftercms.libs.MaterialUI.IconButton['default'] : craftercms.libs.MaterialUI.IconButton;
 const Button = craftercms.libs.MaterialUI.Button && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.Button, 'default') ? craftercms.libs.MaterialUI.Button['default'] : craftercms.libs.MaterialUI.Button;
 const SystemIcon = craftercms.components.SystemIcon && Object.prototype.hasOwnProperty.call(craftercms.components.SystemIcon, 'default') ? craftercms.components.SystemIcon['default'] : craftercms.components.SystemIcon;
 const { createAction } = craftercms.libs.ReduxToolkit;
+const CloseIcon = craftercms.utils.constants.components.get('@mui/icons-material/HighlightOffRounded') && Object.prototype.hasOwnProperty.call(craftercms.utils.constants.components.get('@mui/icons-material/HighlightOffRounded'), 'default') ? craftercms.utils.constants.components.get('@mui/icons-material/HighlightOffRounded')['default'] : craftercms.utils.constants.components.get('@mui/icons-material/HighlightOffRounded');
 const { get } = craftercms.utils.ajax;
+const { copyToClipboard } = craftercms.utils.system;
+const Snackbar = craftercms.libs.MaterialUI.Snackbar && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.Snackbar, 'default') ? craftercms.libs.MaterialUI.Snackbar['default'] : craftercms.libs.MaterialUI.Snackbar;
+const SnackbarContent = craftercms.libs.MaterialUI.SnackbarContent && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.SnackbarContent, 'default') ? craftercms.libs.MaterialUI.SnackbarContent['default'] : craftercms.libs.MaterialUI.SnackbarContent;
 const FormControl = craftercms.libs.MaterialUI.FormControl && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.FormControl, 'default') ? craftercms.libs.MaterialUI.FormControl['default'] : craftercms.libs.MaterialUI.FormControl;
 
 /*
@@ -116,17 +120,73 @@ function __spreadArray(to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 }
 
+/*
+ * Copyright (C) 2007-2022 Crafter Software Corporation. All Rights Reserved.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License version 3 as published by
+ * the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+function useSpreadState(initialState, init) {
+  return useReducer(
+    (state, nextState) =>
+      nextState === '$RESET$' ? Object.assign({}, initialState) : Object.assign(Object.assign({}, state), nextState),
+    initialState,
+    init
+  );
+}
+
 function GenerateContentDialog(props) {
+    var notificationInitialState = {
+        open: false,
+        variant: 'success'
+    };
+    // const useStyles = makeStyles()((theme: Theme) => ({
+    //   form: {
+    //     padding: '20px'
+    //   },
+    //   title: {
+    //     color: '#555555'
+    //   },
+    //   success: {
+    //     backgroundColor: green[600]
+    //   },
+    //   error: {
+    //     backgroundColor: red[600]
+    //   },
+    //   icon: {
+    //     fontSize: 20
+    //   },
+    //   iconVariant: {
+    //     opacity: 0.9,
+    //     marginRight: theme.spacing(1)
+    //   },
+    //   message: {
+    //     display: 'flex',
+    //     alignItems: 'center'
+    //   }
+    // }));
+    //const { classes } = useStyles();
     var siteId = useActiveSiteId();
     var _a = useState(); _a[0]; var setError = _a[1];
-    var _b = useState([]), generatedContent = _b[0], setGeneratedContent = _b[1];
-    var _c = React.useState('Write a story'), ask = _c[0], setAsk = _c[1];
+    var _b = useSpreadState(notificationInitialState), notificationSettings = _b[0], setNotificationSettings = _b[1];
+    var _c = useState([]), generatedContent = _c[0], setGeneratedContent = _c[1];
+    var _d = React.useState('Write a story'), ask = _d[0], setAsk = _d[1];
     var PLUGIN_SERVICE_BASE = '/studio/api/2/plugin/script/plugins/org/rd/plugin/openai/openai';
     var handleAskChange = function (event) {
         setAsk(event.target.value);
     };
     var copyResult = function () {
-        alert('copy');
+        copyToClipboard(generatedContent[0]);
+        setNotificationSettings({ open: true, variant: 'success' });
     };
     var handleGenerate = function () {
         var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/gentext.json?siteId=").concat(siteId, "&ask=").concat(ask);
@@ -160,7 +220,15 @@ function GenerateContentDialog(props) {
                                     mb: 2
                                 }, value: content, multiline: true }),
                             React.createElement(Button$1, { type: "button", onClick: copyResult, variant: "outlined", sx: { mr: 1 } }, "Copy")));
-                    }))))));
+                    })))),
+        React.createElement(Snackbar, { anchorOrigin: {
+                vertical: 'top',
+                horizontal: 'right'
+            }, open: notificationSettings.open, autoHideDuration: 2000 },
+            React.createElement(SnackbarContent, { message: 'Copied', action: [
+                    React.createElement(IconButton, { key: "close", "aria-label": "close", color: "inherit", onClick: function () { return setNotificationSettings({ open: false }); }, size: "large" },
+                        React.createElement(CloseIcon, null))
+                ] }))));
 }
 
 var plugin = {

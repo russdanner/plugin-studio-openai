@@ -1,46 +1,63 @@
 import * as React from 'react';
+//import { makeStyles } from 'tss-react/mui';
 import { styled } from '@mui/material/styles';
 import { useEffect, useState } from 'react';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
+import { green, red } from '@mui/material/colors';
+import { Theme } from '@mui/material/styles';
 
-import {
-  Box,
-  Card,
-  CardHeader,
-  CardActions,
-  CardContent,
-  Collapse,
-  Paper,
-  Typography,
-  cardClasses,
-  Fab,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  TextField
-} from '@mui/material';
+import { Button, DialogActions, DialogContent, DialogContentText, TextField } from '@mui/material';
 
-import IconButton, { IconButtonProps } from '@mui/material/IconButton';
-import { DragDropContext, Draggable, Droppable } from 'react-beautiful-dnd';
+import IconButton from '@mui/material/IconButton';
+import CloseIcon from '@mui/icons-material/HighlightOffRounded';
 
-import { createCustomDocumentEventListener } from '@craftercms/studio-ui/utils/dom';
 import useActiveSiteId from '@craftercms/studio-ui/hooks/useActiveSiteId';
 import { get } from '@craftercms/studio-ui/utils/ajax';
 import { ApiResponse, ApiResponseErrorState } from '@craftercms/studio-ui';
 import { copyToClipboard } from '@craftercms/studio-ui/utils/system';
+import Snackbar from '@mui/material/Snackbar';
+import SnackbarContent from '@mui/material/SnackbarContent';
+import { useSpreadState } from '@craftercms/studio-ui/hooks/useSpreadState';
 
-import Select, { SelectChangeEvent } from '@mui/material/Select';
 import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import MenuItem from '@mui/material/MenuItem';
 
 export function GenerateContentDialog(props) {
+  const notificationInitialState = {
+    open: false,
+    variant: 'success'
+  };
+
+  // const useStyles = makeStyles()((theme: Theme) => ({
+  //   form: {
+  //     padding: '20px'
+  //   },
+  //   title: {
+  //     color: '#555555'
+  //   },
+  //   success: {
+  //     backgroundColor: green[600]
+  //   },
+  //   error: {
+  //     backgroundColor: red[600]
+  //   },
+  //   icon: {
+  //     fontSize: 20
+  //   },
+  //   iconVariant: {
+  //     opacity: 0.9,
+  //     marginRight: theme.spacing(1)
+  //   },
+  //   message: {
+  //     display: 'flex',
+  //     alignItems: 'center'
+  //   }
+  // }));
+
+  //const { classes } = useStyles();
   const siteId = useActiveSiteId();
   const [error, setError] = useState();
+  const [notificationSettings, setNotificationSettings] = useSpreadState(notificationInitialState);
   const [generatedContent, setGeneratedContent] = useState([]);
   const [ask, setAsk] = React.useState('Write a story');
 
@@ -51,7 +68,8 @@ export function GenerateContentDialog(props) {
   };
 
   const copyResult = () => {
-    alert('copy');
+    copyToClipboard(generatedContent[0]);
+    setNotificationSettings({ open: true, variant: 'success' });
   };
 
   const handleGenerate = () => {
@@ -116,6 +134,36 @@ export function GenerateContentDialog(props) {
           </ol>
         </DialogContentText>
       </DialogContent>
+      <Snackbar
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'right'
+        }}
+        open={notificationSettings.open}
+        autoHideDuration={2000}
+      >
+        {/*className={`${notificationSettings.variant === 'success' ? classes.success : classes.error} ${
+            classes.iconVariant
+          }`}
+
+className={classes.icon}
+*/}
+
+        <SnackbarContent
+          message={'Copied'}
+          action={[
+            <IconButton
+              key="close"
+              aria-label="close"
+              color="inherit"
+              onClick={() => setNotificationSettings({ open: false })}
+              size="large"
+            >
+              <CloseIcon />
+            </IconButton>
+          ]}
+        />
+      </Snackbar>
     </>
   );
 }
