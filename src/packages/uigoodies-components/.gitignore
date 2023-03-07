@@ -1,5 +1,0 @@
-build
-dist
-node_modules
-src/i18n/messages
-src/i18n/whitelists

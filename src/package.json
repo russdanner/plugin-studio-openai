@@ -1,5 +1,5 @@
 {
-  "name": "authoring-uigoodies-plugin",
+  "name": "authoring-openai-plugin",
   "version": "1.0.0",
   "main": "index.js",
   "repository": "",
@@ -7,10 +7,6 @@
   "license": "MIT",
   "private": true,
   "packageManager": "yarn@3.2.2",
-  "workspaces": [
-    "packages/uigoodies-components",
-    "packages/cra"
-  ],
   "scripts": {
     "w:prettier": "yarn prettier --write './packages/**/*.{ts,tsx}'"
   },
