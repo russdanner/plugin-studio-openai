@@ -1,17 +1,15 @@
 const React = craftercms.libs.React;
-const { useReducer, useState } = craftercms.libs.React;
+const { useState } = craftercms.libs.React;
 const { useSelector, useDispatch } = craftercms.libs.ReactRedux;
-const { Tooltip, DialogContent, TextField, DialogActions, Button: Button$1, DialogContentText } = craftercms.libs.MaterialUI;
+const { Tooltip, DialogContent, FormLabel, RadioGroup, FormControlLabel, Radio, TextField, DialogActions, Button: Button$1, Box, Card, CardHeader, CardMedia, DialogContentText, IconButton: IconButton$1 } = craftercms.libs.MaterialUI;
 const IconButton = craftercms.libs.MaterialUI.IconButton && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.IconButton, 'default') ? craftercms.libs.MaterialUI.IconButton['default'] : craftercms.libs.MaterialUI.IconButton;
 const Button = craftercms.libs.MaterialUI.Button && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.Button, 'default') ? craftercms.libs.MaterialUI.Button['default'] : craftercms.libs.MaterialUI.Button;
 const SystemIcon = craftercms.components.SystemIcon && Object.prototype.hasOwnProperty.call(craftercms.components.SystemIcon, 'default') ? craftercms.components.SystemIcon['default'] : craftercms.components.SystemIcon;
 const { createAction } = craftercms.libs.ReduxToolkit;
 const Skeleton = craftercms.libs.MaterialUI.Skeleton && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.Skeleton, 'default') ? craftercms.libs.MaterialUI.Skeleton['default'] : craftercms.libs.MaterialUI.Skeleton;
-const CloseIcon = craftercms.utils.constants.components.get('@mui/icons-material/HighlightOffRounded') && Object.prototype.hasOwnProperty.call(craftercms.utils.constants.components.get('@mui/icons-material/HighlightOffRounded'), 'default') ? craftercms.utils.constants.components.get('@mui/icons-material/HighlightOffRounded')['default'] : craftercms.utils.constants.components.get('@mui/icons-material/HighlightOffRounded');
+const ContentCopyRoundedIcon = craftercms.utils.constants.components.get('@mui/icons-material/ContentCopyRounded') && Object.prototype.hasOwnProperty.call(craftercms.utils.constants.components.get('@mui/icons-material/ContentCopyRounded'), 'default') ? craftercms.utils.constants.components.get('@mui/icons-material/ContentCopyRounded')['default'] : craftercms.utils.constants.components.get('@mui/icons-material/ContentCopyRounded');
 const { get } = craftercms.utils.ajax;
 const { copyToClipboard } = craftercms.utils.system;
-const Snackbar = craftercms.libs.MaterialUI.Snackbar && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.Snackbar, 'default') ? craftercms.libs.MaterialUI.Snackbar['default'] : craftercms.libs.MaterialUI.Snackbar;
-const SnackbarContent = craftercms.libs.MaterialUI.SnackbarContent && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.SnackbarContent, 'default') ? craftercms.libs.MaterialUI.SnackbarContent['default'] : craftercms.libs.MaterialUI.SnackbarContent;
 const ListItem = craftercms.libs.MaterialUI.ListItem && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.ListItem, 'default') ? craftercms.libs.MaterialUI.ListItem['default'] : craftercms.libs.MaterialUI.ListItem;
 const List = craftercms.libs.MaterialUI.List && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.List, 'default') ? craftercms.libs.MaterialUI.List['default'] : craftercms.libs.MaterialUI.List;
 const FormControl = craftercms.libs.MaterialUI.FormControl && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.FormControl, 'default') ? craftercms.libs.MaterialUI.FormControl['default'] : craftercms.libs.MaterialUI.FormControl;
@@ -138,19 +136,9 @@ function __spreadArray(to, from, pack) {
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-function useSpreadState(initialState, init) {
-  return useReducer(
-    (state, nextState) =>
-      nextState === '$RESET$' ? Object.assign({}, initialState) : Object.assign(Object.assign({}, state), nextState),
-    initialState,
-    init
-  );
-}
+const showSystemNotification = /*#__PURE__*/ createAction('SHOW_SYSTEM_NOTIFICATION');
 
 function AnswerSkeletonItem() {
-    //const { classes } = useStyles();
-    //lassName={classes.navItem}
-    //className={classes.typeIcon}
     return (React.createElement(ListItem, { style: { height: '25px' } },
         React.createElement(Skeleton, { variant: "rectangular", width: "20px" }),
         React.createElement(Skeleton, { variant: "text", style: { margin: '0 10px', width: "".concat(rand(40, 70), "%") } })));
@@ -168,52 +156,26 @@ function rand(min, max) {
     return Math.floor(Math.random() * (max - min + 1) + min);
 }
 function GenerateContentDialog(props) {
-    var notificationInitialState = {
-        open: false,
-        variant: 'success'
-    };
-    // const useStyles = makeStyles()((theme: Theme) => ({
-    //   form: {
-    //     padding: '20px'
-    //   },
-    //   title: {
-    //     color: '#555555'
-    //   },
-    //   success: {
-    //     backgroundColor: green[600]
-    //   },
-    //   error: {
-    //     backgroundColor: red[600]
-    //   },
-    //   icon: {
-    //     fontSize: 20
-    //   },
-    //   iconVariant: {
-    //     opacity: 0.9,
-    //     marginRight: theme.spacing(1)
-    //   },
-    //   message: {
-    //     display: 'flex',
-    //     alignItems: 'center'
-    //   }
-    // }));
-    //const { classes } = useStyles();
+    var dispatch = useDispatch();
     var siteId = useActiveSiteId();
     var _a = useState(); _a[0]; var setError = _a[1];
     var _b = useState(false), fetching = _b[0], setFetching = _b[1];
-    var _c = useSpreadState(notificationInitialState), notificationSettings = _c[0], setNotificationSettings = _c[1];
-    var _d = useState([]), generatedContent = _d[0], setGeneratedContent = _d[1];
-    var _e = React.useState('Write a story'), ask = _e[0], setAsk = _e[1];
+    var _c = useState([]), generatedContent = _c[0], setGeneratedContent = _c[1];
+    var _d = React.useState('Write a story'), ask = _d[0], setAsk = _d[1];
+    var _e = React.useState('complete'), mode = _e[0], setMode = _e[1];
     var PLUGIN_SERVICE_BASE = '/studio/api/2/plugin/script/plugins/org/rd/plugin/openai/openai';
     var handleAskChange = function (event) {
         setAsk(event.target.value);
     };
     var copyResult = function () {
         copyToClipboard(generatedContent[0]);
-        setNotificationSettings({ open: true, variant: 'success' });
+        dispatch(showSystemNotification({
+            message: 'Copied',
+            options: { variant: 'success', autoHideDuration: 1500 }
+        }));
     };
     var handleGenerate = function () {
-        var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/gentext.json?siteId=").concat(siteId, "&ask=").concat(ask);
+        var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/gentext.json?siteId=").concat(siteId, "&ask=").concat(ask, "&mode=").concat(mode);
         setFetching(true);
         get(serviceUrl).subscribe({
             next: function (response) {
@@ -229,13 +191,27 @@ function GenerateContentDialog(props) {
             }
         });
     };
+    function handleModeChange(event, value) {
+        setMode(value);
+        setGeneratedContent([]);
+    }
     return (React.createElement(React.Fragment, null,
         React.createElement(DialogContent, null,
+            React.createElement(FormControl, null,
+                React.createElement(FormLabel, { id: "demo-row-radio-buttons-group-label" }, "Generate"),
+                React.createElement(RadioGroup, { row: true, "aria-labelledby": "demo-row-radio-buttons-group-label", name: "row-radio-buttons-group", value: mode, onChange: handleModeChange },
+                    React.createElement(FormControlLabel, { value: "complete", control: React.createElement(Radio, null), label: "Text" }),
+                    React.createElement(FormControlLabel, { value: "image", control: React.createElement(Radio, null), label: "Image" }))),
             React.createElement(FormControl, { margin: "normal", fullWidth: true },
                 React.createElement(TextField, { defaultValue: "", id: "outlined-basic", label: "How can I help?", variant: "outlined", onChange: handleAskChange })),
             React.createElement(DialogActions, null,
                 React.createElement(Button$1, { onClick: handleGenerate, variant: "outlined", sx: { mr: 1 } }, "Generate")),
-            React.createElement(DialogContentText, null,
+            mode === 'image' ? (React.createElement(Box, { display: "flex" },
+                React.createElement("section", null,
+                    React.createElement("div", null, fetching === false ? (generatedContent.map(function (item) { return (React.createElement(Card, null,
+                        React.createElement(CardHeader, null),
+                        React.createElement(CardMedia, { image: item, sx: { width: '500px', height: '500px', margin: '30px', m: '15px', border: '1px solid' } }),
+                        React.createElement("a", { download: item, href: item, target: '_blank', style: { paddingBottom: "10px", paddingTop: "20px" } }, "Download this image"))); })) : (React.createElement(React.Fragment, null)))))) : (React.createElement(DialogContentText, null,
                 React.createElement("ol", null, generatedContent &&
                     Object.values(generatedContent).map(function (content, contentIndex) {
                         return (React.createElement("li", null,
@@ -246,17 +222,10 @@ function GenerateContentDialog(props) {
                                     'padding-right': '20px',
                                     mb: 2
                                 }, value: content, multiline: true }),
-                            React.createElement(Button$1, { type: "button", onClick: copyResult, variant: "outlined", sx: { mr: 1 } }, "Copy")));
-                    })),
-                React.createElement(AnswerSkeleton, { numOfItems: 5, renderBody: fetching }))),
-        React.createElement(Snackbar, { anchorOrigin: {
-                vertical: 'top',
-                horizontal: 'right'
-            }, open: notificationSettings.open, autoHideDuration: 2000 },
-            React.createElement(SnackbarContent, { message: 'Copied', action: [
-                    React.createElement(IconButton, { key: "close", "aria-label": "close", color: "inherit", onClick: function () { return setNotificationSettings({ open: false }); }, size: "large" },
-                        React.createElement(CloseIcon, null))
-                ] }))));
+                            React.createElement(IconButton$1, { onClick: copyResult, color: "primary", "aria-label": "Copy to Clipboard", component: "label" },
+                                React.createElement(ContentCopyRoundedIcon, null))));
+                    })))),
+            React.createElement(AnswerSkeleton, { numOfItems: 5, renderBody: fetching }))));
 }
 
 var plugin = {

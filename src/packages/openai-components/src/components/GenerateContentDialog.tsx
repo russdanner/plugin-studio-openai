@@ -1,38 +1,58 @@
 import * as React from 'react';
-//import { makeStyles } from 'tss-react/mui';
-import { styled } from '@mui/material/styles';
-import { useEffect, useState } from 'react';
-import EditRoundedIcon from '@mui/icons-material/EditRounded';
-import RefreshRoundedIcon from '@mui/icons-material/RefreshRounded';
-import { green, red } from '@mui/material/colors';
-import { Theme } from '@mui/material/styles';
+import { useDispatch } from 'react-redux';
+
+import { ChangeEvent, useState } from 'react';
 import Skeleton from '@mui/material/Skeleton';
-import Box from '@mui/material/Box';
-
-import { Button, DialogActions, DialogContent, DialogContentText, TextField } from '@mui/material';
-
-import IconButton from '@mui/material/IconButton';
-import CloseIcon from '@mui/icons-material/HighlightOffRounded';
+import {
+  Box,
+  Button,
+  Card,
+  CardHeader,
+  CardMedia,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  Divider,
+  FormControlLabel,
+  FormLabel,
+  IconButton,
+  Link,
+  Radio,
+  RadioGroup,
+  TextField,
+  Typography
+} from '@mui/material';
+import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
+import { get } from '@craftercms/studio-ui/utils/ajax';
 
 import useActiveSiteId from '@craftercms/studio-ui/hooks/useActiveSiteId';
-import { get } from '@craftercms/studio-ui/utils/ajax';
-import { ApiResponse, ApiResponseErrorState } from '@craftercms/studio-ui';
+import { ApiResponse, EmptyState, FolderBrowserTreeView, SearchBar, SearchItem } from '@craftercms/studio-ui';
 import { copyToClipboard } from '@craftercms/studio-ui/utils/system';
-import Snackbar from '@mui/material/Snackbar';
-import SnackbarContent from '@mui/material/SnackbarContent';
-import { useSpreadState } from '@craftercms/studio-ui/hooks/useSpreadState';
-import ListItemIcon from '@mui/material/ListItemIcon';
-import ListItemText from '@mui/material/ListItemText';
 import ListItem from '@mui/material/ListItem';
 import List from '@mui/material/List';
+import { showSystemNotification } from '@craftercms/studio-ui/state/actions/system';
 
 import FormControl from '@mui/material/FormControl';
+import MediaCard from '@craftercms/studio-ui/components/MediaCard';
+import SecondaryButton from '@craftercms/studio-ui/components/SecondaryButton';
+import path from 'path';
+import { FormattedMessage } from 'react-intl';
+import { DownloadRounded } from '@mui/icons-material';
+
+export function MediaSkeletonCard() {
+  const classes = useCardStyles();
+  return (
+    <Card>
+      <CardHeader
+        avatar={<Skeleton variant="circular" width={24} height={24} />}
+        title={<Skeleton animation="wave" height={20} width="100%" />}
+      />
+      <Skeleton animation="wave" variant="rectangular" />
+    </Card>
+  );
+}
 
 function AnswerSkeletonItem() {
-  //const { classes } = useStyles();
-  //lassName={classes.navItem}
-  //className={classes.typeIcon}
-
   return (
     <ListItem style={{ height: '25px' }}>
       <Skeleton variant="rectangular" width="20px" />
@@ -67,45 +87,14 @@ export function rand(min: number, max: number) {
 }
 
 export function GenerateContentDialog(props) {
-  const notificationInitialState = {
-    open: false,
-    variant: 'success'
-  };
-
-  // const useStyles = makeStyles()((theme: Theme) => ({
-  //   form: {
-  //     padding: '20px'
-  //   },
-  //   title: {
-  //     color: '#555555'
-  //   },
-  //   success: {
-  //     backgroundColor: green[600]
-  //   },
-  //   error: {
-  //     backgroundColor: red[600]
-  //   },
-  //   icon: {
-  //     fontSize: 20
-  //   },
-  //   iconVariant: {
-  //     opacity: 0.9,
-  //     marginRight: theme.spacing(1)
-  //   },
-  //   message: {
-  //     display: 'flex',
-  //     alignItems: 'center'
-  //   }
-  // }));
-
-  //const { classes } = useStyles();
+  const dispatch = useDispatch();
   const siteId = useActiveSiteId();
   const [error, setError] = useState();
   const [fetching, setFetching] = useState(false);
 
-  const [notificationSettings, setNotificationSettings] = useSpreadState(notificationInitialState);
   const [generatedContent, setGeneratedContent] = useState([]);
   const [ask, setAsk] = React.useState('Write a story');
+  const [mode, setMode] = React.useState('complete');
 
   const PLUGIN_SERVICE_BASE = '/studio/api/2/plugin/script/plugins/org/rd/plugin/openai/openai';
 
@@ -115,11 +104,17 @@ export function GenerateContentDialog(props) {
 
   const copyResult = () => {
     copyToClipboard(generatedContent[0]);
-    setNotificationSettings({ open: true, variant: 'success' });
+
+    dispatch(
+      showSystemNotification({
+        message: 'Copied',
+        options: { variant: 'success', autoHideDuration: 1500 }
+      })
+    );
   };
 
   const handleGenerate = () => {
-    let serviceUrl = `${PLUGIN_SERVICE_BASE}/gentext.json?siteId=${siteId}&ask=${ask}`;
+    let serviceUrl = `${PLUGIN_SERVICE_BASE}/gentext.json?siteId=${siteId}&ask=${ask}&mode=${mode}`;
 
     setFetching(true);
 
@@ -142,9 +137,28 @@ export function GenerateContentDialog(props) {
     });
   };
 
+  function handleModeChange(event: ChangeEvent<HTMLInputElement>, value: string): void {
+    setMode(value);
+    setGeneratedContent([]);
+  }
+
   return (
     <>
       <DialogContent>
+        <FormControl>
+          <FormLabel id="demo-row-radio-buttons-group-label">Generate</FormLabel>
+          <RadioGroup
+            row
+            aria-labelledby="demo-row-radio-buttons-group-label"
+            name="row-radio-buttons-group"
+            value={mode}
+            onChange={handleModeChange}
+          >
+            <FormControlLabel value="complete" control={<Radio />} label="Text" />
+            <FormControlLabel value="image" control={<Radio />} label="Image" />
+          </RadioGroup>
+        </FormControl>
+
         <FormControl margin="normal" fullWidth>
           <TextField
             defaultValue=""
@@ -160,67 +174,70 @@ export function GenerateContentDialog(props) {
           </Button>
         </DialogActions>
 
-        <DialogContentText>
-          <ol>
-            {generatedContent &&
-              Object.values(generatedContent).map((content, contentIndex) => {
-                return (
-                  <li>
-                    <TextField
-                      sx={{
-                        color: 'rgb(0, 122, 255)',
-                        width: '90%',
-                        'padding-bottom': '10px',
-                        'padding-right': '20px',
-                        mb: 2
-                      }}
-                      value={content}
-                      multiline
-                    />
+        {mode === 'image' ? (
+          <Box display="flex">
+            <section>
+              <div>
+                {fetching === false ? (
+                  generatedContent.map((item) => (
+                    <Card>
+                      <CardHeader></CardHeader>
+                      <CardMedia
+                        image={item}
+                        sx={{ width: '500px', height: '500px', margin: '30px', m: '15px', border: '1px solid' }}
+                      />
 
-                    <Button type="button" onClick={copyResult} variant="outlined" sx={{ mr: 1 }}>
-                      Copy
-                    </Button>
-                  </li>
-                );
-              })}
-          </ol>
+                      <a
+                        download={item}
+                        href={item}
+                        target="_blank"
+                        style={{ paddingBottom: '10px', paddingTop: '20px' }}
+                      >
+                        Download this image
+                      </a>
+                    </Card>
+                  ))
+                ) : (
+                  <></>
+                )}
+              </div>
+            </section>
+          </Box>
+        ) : (
+          <DialogContentText>
+            <ol>
+              {generatedContent &&
+                Object.values(generatedContent).map((content, contentIndex) => {
+                  return (
+                    <li>
+                      <TextField
+                        sx={{
+                          color: 'rgb(0, 122, 255)',
+                          width: '90%',
+                          'padding-bottom': '10px',
+                          'padding-right': '20px',
+                          mb: 2
+                        }}
+                        value={content}
+                        multiline
+                      />
 
-          <AnswerSkeleton numOfItems={5} renderBody={fetching} />
-        </DialogContentText>
+                      <IconButton onClick={copyResult} color="primary" aria-label="Copy to Clipboard" component="label">
+                        <ContentCopyRoundedIcon />
+                      </IconButton>
+                    </li>
+                  );
+                })}
+            </ol>
+          </DialogContentText>
+        )}
+        <AnswerSkeleton numOfItems={5} renderBody={fetching} />
       </DialogContent>
-      <Snackbar
-        anchorOrigin={{
-          vertical: 'top',
-          horizontal: 'right'
-        }}
-        open={notificationSettings.open}
-        autoHideDuration={2000}
-      >
-        {/*className={`${notificationSettings.variant === 'success' ? classes.success : classes.error} ${
-            classes.iconVariant
-          }`}
-
-className={classes.icon}
-*/}
-
-        <SnackbarContent
-          message={'Copied'}
-          action={[
-            <IconButton
-              key="close"
-              aria-label="close"
-              color="inherit"
-              onClick={() => setNotificationSettings({ open: false })}
-              size="large"
-            >
-              <CloseIcon />
-            </IconButton>
-          ]}
-        />
-      </Snackbar>
     </>
   );
 }
 
 export default GenerateContentDialog;
+function useCardStyles() {
+  throw new Error('Function not implemented.');
+}
