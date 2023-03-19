@@ -52,11 +52,20 @@ plugin:
     - enterprise
   parameters:
     - label: OpenAI Username
-      name: userId
+      name: openAiUserId
       description: OpenAI Username
     - label: OpenAI API Token
-      name: token
+      name: openAiToken
       description: OpenAI API Token
+    - label: AWS API Key
+      name: awsApiKey
+      description: AWS API key used for AWS Polly text to speech
+    - label: AWS API Secret
+      name: awsApiSecret
+      description: AWS API secret used for AWS Polly text to speech
+    - label: AWS Region
+      name: awsApiRegion
+      description: AWS API region used for AWS Polly text to speech
   installation:
     - type: form-control
       elementXpath: //control/plugin[pluginId='org.rd.plugin.openai']
