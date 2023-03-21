@@ -198,6 +198,20 @@ export function ConvertTextToVideoDialog(props) {
                           variant="filled"
                         />
 
+                        <TextField
+                          sx={{
+                            color: 'rgb(0, 122, 255)',
+                            width: '50%',
+                            'padding-bottom': '10px',
+                            'padding-right': '20px',
+                            mb: 2
+                          }}
+                          
+                          value={slide.distillation}
+                          multiline
+
+                          variant="filled"
+                        />
 
                         <audio controls>
   <source src={"/studio/api/2/plugin/script/plugins/org/rd/plugin/openai/openai/download-audio.json?siteId=" + siteId + "&text=" + slide.text } type="audio/mpeg" />

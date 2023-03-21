@@ -16,6 +16,7 @@ import com.amazonaws.services.polly.model.OutputFormat
 import com.amazonaws.services.polly.model.SynthesizeSpeechRequest
 import com.amazonaws.services.polly.model.SynthesizeSpeechResult
 import com.amazonaws.services.polly.model.VoiceId
+
 import com.amazonaws.auth.BasicAWSCredentials
 import com.amazonaws.auth.AWSStaticCredentialsProvider
 import com.amazonaws.auth.AWSCredentialsProvider
@@ -80,6 +81,10 @@ class AiServices {
     return images[0]
   }
 
+  def doDistillation(ask) {
+    return doCompletion("distill the following to a single word or phase: "+ask)[0]
+  }
+
  /**
   * perform text completion
   */
@@ -106,7 +111,7 @@ class AiServices {
           def cleanedAnswer = answer.substring(answer.indexOf(". ")+1)
           
           // Clean quotes off string (may be better way long term to parse answers)
-          cleanedAnswer = cleanedAnswer.substring(1,cleanedAnswer.length)
+          //cleanedAnswer = cleanedAnswer.substring(1,cleanedAnswer.length)
 
           generatedContent.add(cleanedAnswer)
         }
@@ -122,7 +127,7 @@ class AiServices {
   def doTextToSpeech(text) {
     def synthesizeSpeechRequest = new SynthesizeSpeechRequest()
           .withOutputFormat(OutputFormat.Mp3) //.Ogg_vorbis)
-          .withVoiceId(VoiceId.Joanna)
+          .withVoiceId(VoiceId.Brian)
           .withText(text)
           .withEngine("neural")
 

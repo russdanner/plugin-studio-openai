@@ -86,7 +86,7 @@ function ConvertTextToVideoDialog(props) {
     var _e = React.useState('complete'); _e[0]; _e[1];
     var PLUGIN_SERVICE_BASE = '/studio/api/2/plugin/script/plugins/org/rd/plugin/openai/openai';
     var handleConstructVideo = function () {
-        var serviceUrl = "http://localhost:8080".concat(PLUGIN_SERVICE_BASE, "/construct-video.json?siteId=").concat(siteId);
+        var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/construct-video.json?siteId=").concat(siteId);
         setFetching(true);
         console.log("post: " + serviceUrl);
         console.log(generatedContent);
@@ -134,6 +134,13 @@ function ConvertTextToVideoDialog(props) {
                                     'padding-right': '20px',
                                     mb: 2
                                 }, value: slide.text, multiline: true, variant: "filled" }),
+                            React.createElement(TextField, { sx: {
+                                    color: 'rgb(0, 122, 255)',
+                                    width: '50%',
+                                    'padding-bottom': '10px',
+                                    'padding-right': '20px',
+                                    mb: 2
+                                }, value: slide.distillation, multiline: true, variant: "filled" }),
                             React.createElement("audio", { controls: true },
                                 React.createElement("source", { src: "/studio/api/2/plugin/script/plugins/org/rd/plugin/openai/openai/download-audio.json?siteId=" + siteId + "&text=" + slide.text, type: "audio/mpeg" }),
                                 "Your browser does not support the audio element.")),

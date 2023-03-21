@@ -67,19 +67,24 @@ class AudioVideoServices {
     /**
      * return length in seconds for audio file 
      */
-    def determineLengthOfAudio(audioFile) {
+    def determineLengthOfAudio(dir, audioFile) {
         def durationInSeconds = 1
 
-        try {
-            def audioInputStream = AudioSystem.getAudioInputStream(audioFile)
-            def format = audioInputStream.getFormat()
-            def frames = audioInputStream.getFrameLength()
-            
-            durationInSeconds = (frames+0.0) / format.getFrameRate()  
-        }
-        catch(err) {
-            logger.error("Error getting audio clip length")//, err)
-        }
+        def path = dir.toFile().getPath()
+        def filename = audioFile.toFile().getName()
+
+        // cd $1
+        // RESULT=$(ffmpeg -hide_banner -i $2  dat-$2 2>&1)
+        // DURATION=$(echo $RESULT | grep Duration |  cut -d ',' -f4 | cut -d ' ' -f9)
+        // echo $DURATION
+        def output = ProcBuilder.run("/home/russdanner/crafter-installs/next/craftercms/crafter-authoring/temp/tomcat/duration.sh", path, filename)
+        def time = output.trim().split(":")
+
+        def hours = Float.parseFloat(time[0])
+        def minutes = Float.parseFloat(time[1])
+        def seconds = Float.parseFloat(time[2])
+
+        durationInSeconds = seconds + (minutes * 60) + (hours * 60 * 60) 
 
         return durationInSeconds
     }
@@ -106,6 +111,10 @@ class AudioVideoServices {
     def convertMp3ToMp4(sourceDirectoryPath) {
        def path = sourceDirectoryPath.toFile().getPath()
 
+        //convert.sh
+        //cd $1
+        //ffmpeg -f lavfi -i color=c=black:s=1280x720:r=5 -i audio-full.mp3 -crf 0 -c:a copy -shortest audio-full-converted.mp4
+
         def output = ProcBuilder.run("/home/russdanner/crafter-installs/next/craftercms/crafter-authoring/temp/tomcat/convert.sh", path)
     }
 
@@ -113,19 +122,20 @@ class AudioVideoServices {
 
         MovieCreator mc = new MovieCreator()
         Movie video = mc.build(sourceVideoPath.toFile().getPath()) 
-        Movie audio = mc.build(sourceAudioPath.toFile().getPath())//sourceAudioPath.toFile().getPath()) 
+        Movie audio = mc.build(sourceAudioPath.toFile().getPath())
+        //sourceAudioPath.toFile().getPath()) 
         // MP3TrackImpl audio=new MP3TrackImpl(new FileDataSourceImpl(sourceAudioPath.toFile().getPath()))
         
-        List<Track> videoTracks = video.getTracks();
-        video.setTracks(new LinkedList<Track>());
-        for (Track videoTrack : videoTracks) {
-            video.addTrack(new AppendTrack(videoTrack, videoTrack));
-        }
+        // List<Track> videoTracks = video.getTracks();
+        // video.setTracks(new LinkedList<Track>());
+        // for (Track videoTrack : videoTracks) {
+        //     video.addTrack(new AppendTrack(videoTrack, videoTrack));
+        // }
 
-        List<Track> audioTracks = audio.getTracks();
-        for (Track audioTrack : audioTracks) {
-            video.addTrack(new AppendTrack(audioTrack, audioTrack));
-        }
+        List<Track> audioTracks = audio.getTracks()
+        // for (Track audioTrack : audioTracks) {
+            video.addTrack(new AppendTrack(audioTracks[1]));
+        // }
 
         def builder = new DefaultMp4Builder()
         def out = builder.build(video);
@@ -137,7 +147,7 @@ class AudioVideoServices {
 
 
 
-    def generateVideoBySequenceImages(folderPath, outputVideoPath) 
+    def generateVideoBySequenceImages(folderPath, outputVideoPath, slideDefinitions) 
     throws Exception {
 
         SeekableByteChannel out = null;
@@ -146,29 +156,28 @@ class AudioVideoServices {
             out = NIOUtils.writableFileChannel(outputVideoPath.toFile().getName())
             def encoder = AWTSequenceEncoder.create30Fps(outputVideoPath.toFile())
 
-            if (Files.isDirectory(folderPath)) {
-                DirectoryStream<Path> stream = Files.newDirectoryStream(folderPath, "*.png")
+            // encode each image at the duration of the audio associated with it
+            // we can assume filenames align with the index of the slide
+            def index = 0
+            slideDefinitions.each { slide ->
+                try {
+                    def imageFile = folderPath.resolve("image-" + index + ".png").toFile()
 
-                List<File> filesList = new ArrayList<File>();
-                for (Path path : stream) {
-                    filesList.add(path.toFile());
-                }
-                File[] files = new File[filesList.size()];
-                filesList.toArray(files);
-
-                //sortByNumber(files);
-
-                for (File img : files) {
-                    // Generate the image, for Android use Bitmap
-                    BufferedImage image = ImageIO.read(img);
+                    BufferedImage image = ImageIO.read(imageFile);
                     // Encode the image
-                    for(int i=0;i<300;i++) {
+                    def FRAMES_PER_SECOND = 30
+                    def framesToEncode = FRAMES_PER_SECOND * slide.duration
+                    for(int i=0; i < framesToEncode; i++) {
                         encoder.encodeImage(image);
                     }
-
                 }
+                catch(encodeErr) {
+                    System.out.println("error encoding an image" + index  + " :"+encodeErr)
+                }                
+
+                index++
             }
-            // Finalize the encoding, i.e. clear the buffers, write the header, etc.
+
             encoder.finish();
         } finally {
             NIOUtils.closeQuietly(out);

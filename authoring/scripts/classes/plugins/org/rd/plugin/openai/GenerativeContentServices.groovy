@@ -54,15 +54,12 @@ class GenerativeContentServices {
     /**
      * prepare a video from text
      */
-    def generateVideoFromText(sourceText) {
+    def generateVideoFromText(sourceText, mainSubject) {
         def sentences = sourceText.split("(?<=[.?!]) ");
   
         // generate slide defimitions
-        def slideDefinitions = generateSlideDefinitions(sentences)
+        def slideDefinitions = generateSlideDefinitions(sentences, mainSubject)
   
-        // prepare movie
-        //def videoDownloadUrl = prepareMovie(slideDefinitions)
-
         return slideDefinitions
     }
 
@@ -88,7 +85,7 @@ class GenerativeContentServices {
             Files.copy(audioInputstream, audioPath, StandardCopyOption.REPLACE_EXISTING);
         
             // get slide durion based on aduio
-            slide.duration = audioVideoServices.determineLengthOfAudio(audioPath.toFile())
+            slide.duration = audioVideoServices.determineLengthOfAudio(dir, audioPath)
 
             // download audio to temp folder    
             def imagePath = dir.resolve("image-" + slideIndex + ".png")
@@ -109,13 +106,12 @@ class GenerativeContentServices {
         // create mp4 version of audio
         //def cleanedFullAudioPath = dir.resolve("audio-full-cleam.mp3")
         //audioVideoServices.cleanMp3(fullAudioPath, cleanedFullAudioPath)
-
         audioVideoServices.convertMp3ToMp4(dir)
         def fullAudioAsMp4Path = dir.resolve("audio-full-converted.mp4")
 
         // generate stiched video (writes the mp4)
         def stitchedVideoPath = dir.resolve("image-stich.mp4")
-        audioVideoServices.generateVideoBySequenceImages(dir, stitchedVideoPath) 
+        audioVideoServices.generateVideoBySequenceImages(dir, stitchedVideoPath, slideDefinitions) 
         
         // // combine audio and video for final video
         def finalVideoPath = dir.resolve("final.mp4")
@@ -127,7 +123,7 @@ class GenerativeContentServices {
     /**
      * based on sentence text, genetrate video and audio
      */
-    def generateSlideDefinitions(sentences) {
+    def generateSlideDefinitions(sentences, mainSubject) {
         def slides = []
         def slideTextGroups = sentences.collate(1)
 
@@ -138,8 +134,14 @@ class GenerativeContentServices {
             // set slide text
             slide.text = text
 
+            // distill text
+            slide.distillation = aiServices.doDistillation(text)
+
+            System.out.println("Text: "+text)
+            System.out.println("Grok: "+slide.distillation)
+
             // set slide image
-            slide.image = generateImageDownloadUrlForText(text)
+            slide.image = generateImageDownloadUrlForText(mainSubject + ": " + slide.distillation)
 
             if(!slide.image) { slide.image = "https://storage.ning.com/topology/rest/1.0/file/get/1557487814?profile=original" }
 
