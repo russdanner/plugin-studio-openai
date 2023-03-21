@@ -77,7 +77,7 @@ class AiServices {
       images.add(image.getUrl())
     }
 
-    return images
+    return images[0]
   }
 
  /**
@@ -121,7 +121,7 @@ class AiServices {
    */
   def doTextToSpeech(text) {
     def synthesizeSpeechRequest = new SynthesizeSpeechRequest()
-          .withOutputFormat(OutputFormat.Mp3)
+          .withOutputFormat(OutputFormat.Mp3) //.Ogg_vorbis)
           .withVoiceId(VoiceId.Joanna)
           .withText(text)
           .withEngine("neural")

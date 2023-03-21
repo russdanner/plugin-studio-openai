@@ -3,6 +3,9 @@ package plugins.org.rd.plugin.openai
 @Grab(group='org.jcodec', module='jcodec-javase', version='0.2.5', initClass=false)
 @Grab(group='com.googlecode.mp4parser', module='isoparser', version='1.1.22', initClass=false)
 @Grab(group='org.mp4parser', module='muxer', version='1.9.41', initClass=false)
+@Grab(group='com.googlecode.mp4parser', module='isoparser', version='1.1.22', initClass=false)
+@Grab(group='com.mpatric', module='mp3agic', version='0.9.1', initClass=false)
+@Grab(group='org.buildobjects', module='jproc', version='2.8.2', initClass=false)
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -37,6 +40,10 @@ import org.mp4parser.muxer.Movie;
 import org.mp4parser.muxer.Track;
 import org.mp4parser.muxer.container.mp4.MovieCreator;
 import org.mp4parser.muxer.tracks.AppendTrack;
+
+import com.googlecode.mp4parser.FileDataSourceImpl
+import com.googlecode.mp4parser.authoring.tracks.MP3TrackImpl
+
 import java.io.FileInputStream
 
 import java.nio.file.Files
@@ -45,6 +52,9 @@ import java.nio.file.StandardCopyOption
 
 import javax.sound.sampled.AudioSystem
 
+import com.mpatric.mp3agic.Mp3File
+
+import org.buildobjects.process.ProcBuilder
 
 class AudioVideoServices {
  
@@ -75,45 +85,51 @@ class AudioVideoServices {
     }
 
 
+    def cleanMp3(origAudioPath, cleanAudioPath) {
+        Mp3File mp3file = new Mp3File(origAudioPath)
+    
+        if (mp3file.hasId3v1Tag()) {
+            mp3file.removeId3v1Tag()
+        }
+        
+        if (mp3file.hasId3v2Tag()) {
+            mp3file.removeId3v2Tag()
+        }
+    
+        if (mp3file.hasCustomTag()) {
+            mp3file.removeCustomTag()
+        }
+    
+        mp3file.save(cleanAudioPath.toFile().getPath()) 
+    }
+
+    def convertMp3ToMp4(sourceDirectoryPath) {
+       def path = sourceDirectoryPath.toFile().getPath()
+
+        def output = ProcBuilder.run("/home/russdanner/crafter-installs/next/craftercms/crafter-authoring/temp/tomcat/convert.sh", path)
+    }
+
     def addAudioToVideo(sourceVideoPath, sourceAudioPath, outputFilePath) {
 
-        System.out.println("Ax0 x")
         MovieCreator mc = new MovieCreator()
-
-def path = "/home/russdanner/crafter-installs/next/craftercms/crafter-authoring/temp/tomcat/movie-work-a"
-
-        System.out.println("Ax01 ")
-        Movie video = mc.build(path+"/image-stich.mp4") //sourceVideoPath.getPath())   
+        Movie video = mc.build(sourceVideoPath.toFile().getPath()) 
+        Movie audio = mc.build(sourceAudioPath.toFile().getPath())//sourceAudioPath.toFile().getPath()) 
+        // MP3TrackImpl audio=new MP3TrackImpl(new FileDataSourceImpl(sourceAudioPath.toFile().getPath()))
         
-        System.out.println("Ax02")
-        Movie audio = mc.build(path+"/example.mp4") //sourceAudioPath.getPath()) 
-        
-        
-        System.out.println("Ax1")
         List<Track> videoTracks = video.getTracks();
-
-        video.setTracks(new LinkedList<Track>());        
-        List<Track> audioTracks = audio.getTracks();
-        
-        System.out.println("Ax2")
+        video.setTracks(new LinkedList<Track>());
         for (Track videoTrack : videoTracks) {
             video.addTrack(new AppendTrack(videoTrack, videoTrack));
         }
 
-        System.out.println("Ax3")
+        List<Track> audioTracks = audio.getTracks();
         for (Track audioTrack : audioTracks) {
             video.addTrack(new AppendTrack(audioTrack, audioTrack));
         }
-        
-        System.out.println("A")
+
         def builder = new DefaultMp4Builder()
-
-
-        System.out.println("A1")
         def out = builder.build(video);
 
-
-        System.out.println("B")
         FileOutputStream fos = new FileOutputStream(outputFilePath.toFile());
         out.writeContainer(fos.getChannel())
         fos.close();
@@ -129,10 +145,6 @@ def path = "/home/russdanner/crafter-installs/next/craftercms/crafter-authoring/
         try {
             out = NIOUtils.writableFileChannel(outputVideoPath.toFile().getName())
             def encoder = AWTSequenceEncoder.create30Fps(outputVideoPath.toFile())
-            //Rational.R(25, 1));
-            //, Format.MOV, Codec.H264, null);
-
-            //Path directoryPath = Paths.get(folderPath.toFile().toURI())
 
             if (Files.isDirectory(folderPath)) {
                 DirectoryStream<Path> stream = Files.newDirectoryStream(folderPath, "*.png")
@@ -147,7 +159,6 @@ def path = "/home/russdanner/crafter-installs/next/craftercms/crafter-authoring/
                 //sortByNumber(files);
 
                 for (File img : files) {
-                    System.out.println("Encoding image " + img.getName());
                     // Generate the image, for Android use Bitmap
                     BufferedImage image = ImageIO.read(img);
                     // Encode the image
@@ -163,29 +174,4 @@ def path = "/home/russdanner/crafter-installs/next/craftercms/crafter-authoring/
             NIOUtils.closeQuietly(out);
         }
     }
-
-
-    def sortByNumber(File[] files) {
-        Arrays.sort(files, new Comparator<File>() {
-            @Override
-            public int compare(File o1, File o2) {
-                int n1 = extractNumber(o1.getName());
-                int n2 = extractNumber(o2.getName());
-                return n1 - n2;
-            }
-            private int extractNumber(String name) {
-                int i = 0;
-                try {
-                    int s = name.lastIndexOf('_')+1;
-                    int e = name.lastIndexOf('.');
-                    String number = name.substring(s, e);
-                    i = Integer.parseInt(number);
-                } catch(Exception e) {
-                    i = 0; // if filename does not match the format then default to 0
-                }
-                return i;
-            }
-        }); 
-    }
-
 }

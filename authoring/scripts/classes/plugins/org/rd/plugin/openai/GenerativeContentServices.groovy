@@ -66,6 +66,7 @@ class GenerativeContentServices {
         return slideDefinitions
     }
 
+
     /**
      * use slide definitions to construct video
      */
@@ -83,14 +84,13 @@ class GenerativeContentServices {
             // write audio fragment
             def audioResult = generateAudioDownloadUrlForText(slide.text)
             def audioInputstream = audioResult.getAudioStream()
-            def audioPath = dir.resolve("audio-seg-" + slideIndex + ".mp4")
+            def audioPath = dir.resolve("audio-seg-" + slideIndex + ".mp3")
             Files.copy(audioInputstream, audioPath, StandardCopyOption.REPLACE_EXISTING);
-
+        
             // get slide durion based on aduio
             slide.duration = audioVideoServices.determineLengthOfAudio(audioPath.toFile())
 
             // download audio to temp folder    
-            // get(uri: slide.image, contentType: ContentTypes.BINARY) 
             def imagePath = dir.resolve("image-" + slideIndex + ".png")
             def imageInputstream = HttpBuilder.configure { request.raw = slide.image }.get {
                 Download.toFile(delegate, imagePath.toFile())
@@ -103,17 +103,23 @@ class GenerativeContentServices {
         // generate and download the full audio
         def fullAudioResult = generateAudioDownloadUrlForText(fullAudioText)
         def fullAudioInputstream = fullAudioResult.getAudioStream()
-        def fullAudioPath = dir.resolve("audio-full.mp4")
-        Files.copy(fullAudioInputstream, fullAudioPath, StandardCopyOption.REPLACE_EXISTING);
+        def fullAudioPath = dir.resolve("audio-full.mp3")
+        Files.copy(fullAudioInputstream, fullAudioPath, StandardCopyOption.REPLACE_EXISTING)
 
-        // generate stiched video
+        // create mp4 version of audio
+        //def cleanedFullAudioPath = dir.resolve("audio-full-cleam.mp3")
+        //audioVideoServices.cleanMp3(fullAudioPath, cleanedFullAudioPath)
+
+        audioVideoServices.convertMp3ToMp4(dir)
+        def fullAudioAsMp4Path = dir.resolve("audio-full-converted.mp4")
+
+        // generate stiched video (writes the mp4)
         def stitchedVideoPath = dir.resolve("image-stich.mp4")
         audioVideoServices.generateVideoBySequenceImages(dir, stitchedVideoPath) 
-        //Files.copy(stitchedVideoInputStream, dir, StandardCopyOption.REPLACE_EXISTING);
-
-        // combine audio and video for final video
+        
+        // // combine audio and video for final video
         def finalVideoPath = dir.resolve("final.mp4")
-        audioVideoServices.addAudioToVideo(stitchedVideoPath, fullAudioPath, finalVideoPath)
+        audioVideoServices.addAudioToVideo(stitchedVideoPath, fullAudioAsMp4Path, finalVideoPath)
         
         return finalVideoUrl
     }
@@ -123,7 +129,7 @@ class GenerativeContentServices {
      */
     def generateSlideDefinitions(sentences) {
         def slides = []
-        def slideTextGroups = sentences.collate(2)
+        def slideTextGroups = sentences.collate(1)
 
         slideTextGroups.each{ textGroup ->
             def slide = [:]
@@ -133,13 +139,9 @@ class GenerativeContentServices {
             slide.text = text
 
             // set slide image
-            System.out.println("Generate Image for " + text)
-            //slide.image = generateImageDownloadUrlForText(text)
+            slide.image = generateImageDownloadUrlForText(text)
 
             if(!slide.image) { slide.image = "https://storage.ning.com/topology/rest/1.0/file/get/1557487814?profile=original" }
-
-            // set slide audio
-            //slide.audio = generateAudioDownloadUrlForText(text)
 
             slides.add(slide)
         }
@@ -154,8 +156,7 @@ class GenerativeContentServices {
         def image = null
 
         try {
-            def ask = "create an image for \"" + text + "\""
-            image = aiServices.doImageGeneration(ask)
+            image = aiServices.doImageGeneration(text)
         }
         catch(err) {
             System.out.println("Image request failed :" + err)
@@ -185,7 +186,6 @@ class GenerativeContentServices {
      */
     def httpGet(url) {
         def apiUrl = url
-        System.out.println("calling API :${apiUrl}")
         def result = HttpBuilder.configure { request.raw = apiUrl }.get()
     }
 }
