@@ -23,6 +23,7 @@ import ListItem from '@mui/material/ListItem';
 import List from '@mui/material/List';
 import FormControl from '@mui/material/FormControl';
 import CachedRoundedIcon from '@mui/icons-material/CachedRounded';
+import { forkJoin } from 'rxjs';
 
 export function MediaSkeletonCard() {
   return (
@@ -75,8 +76,9 @@ export function ConvertTextToVideoDialog(props) {
   const siteId = useActiveSiteId();
   const [error, setError] = useState();
   const [fetching, setFetching] = useState(false);
-
   const [generatedContent, setGeneratedContent] = useState([]);
+
+  
   const [sourceUrl, setSourceUrl] = React.useState('');
   const [mode, setMode] = React.useState('complete');
 
@@ -128,14 +130,16 @@ export function ConvertTextToVideoDialog(props) {
     let serviceUrl = `${PLUGIN_SERVICE_BASE}/gentext.json?siteId=${siteId}&ask=${distilation}&mode=image`;
     get(serviceUrl).subscribe({
       next: (response) => {
-        let resultImage = [...response.response.result][0]
+        let resultImage = response.response.result[0]
 
         if(resultImage) {
           slide.image = resultImage
+
         }
         else {
           slide.image = "/failed"
         }
+        setGeneratedContent([...generatedContent])
         
       },
       error(e) {
@@ -153,10 +157,29 @@ export function ConvertTextToVideoDialog(props) {
     get(serviceUrl).subscribe({
       next: (response) => {
         console.log(response.response.result);
+        let slides = response.response.result.slides
+
+        // queue slide image creation
+        let imageRequests = []
+        slides.forEach((slide) => {
+          let serviceUrl = `${PLUGIN_SERVICE_BASE}/gentext.json?siteId=${siteId}&ask=${slide.distillation}&mode=image`;
+          imageRequests.push(get(serviceUrl))
+        })
+
+        // fire slide image creationm
+        forkJoin(imageRequests).subscribe(
+          (imageResults)  => {
+            console.log(imageResults)
+            slides.forEach((slide, index) => {
+              slide.image = imageResults[index].response.result[0]
+            })
+
+            setGeneratedContent([...slides])
+          })
+
 
         setFetching(false);
-
-        setGeneratedContent([...response.response.result.slides]);
+        setGeneratedContent(slides);
       },
       error(e) {
         console.error(e);
@@ -186,7 +209,7 @@ export function ConvertTextToVideoDialog(props) {
         </DialogActions>
 
         {generatedContent &&
-          Object.values(generatedContent).map((slide, contentIndex) => {
+          generatedContent.map((slide, contentIndex) => {
 
             return (
               <Box key={contentIndex}>
@@ -237,7 +260,7 @@ export function ConvertTextToVideoDialog(props) {
                   </audio> */}
                 </Box>
 
-                <img style={{ width: '200px' }} width="200px" src={slide.image!=null ? slide.image : queueImage(contentIndex)} />
+                <img style={{ width: '200px' }} width="200px" src={slide.image} />
               </Box>
             );
           })}

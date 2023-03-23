@@ -9,6 +9,7 @@ const ListItem = craftercms.libs.MaterialUI.ListItem && Object.prototype.hasOwnP
 const List = craftercms.libs.MaterialUI.List && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.List, 'default') ? craftercms.libs.MaterialUI.List['default'] : craftercms.libs.MaterialUI.List;
 const FormControl = craftercms.libs.MaterialUI.FormControl && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.FormControl, 'default') ? craftercms.libs.MaterialUI.FormControl['default'] : craftercms.libs.MaterialUI.FormControl;
 const CachedRoundedIcon = craftercms.utils.constants.components.get('@mui/icons-material/CachedRounded') && Object.prototype.hasOwnProperty.call(craftercms.utils.constants.components.get('@mui/icons-material/CachedRounded'), 'default') ? craftercms.utils.constants.components.get('@mui/icons-material/CachedRounded')['default'] : craftercms.utils.constants.components.get('@mui/icons-material/CachedRounded');
+const { forkJoin } = craftercms.libs.rxjs;
 const IconButton$1 = craftercms.libs.MaterialUI.IconButton && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.IconButton, 'default') ? craftercms.libs.MaterialUI.IconButton['default'] : craftercms.libs.MaterialUI.IconButton;
 const Button$1 = craftercms.libs.MaterialUI.Button && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.Button, 'default') ? craftercms.libs.MaterialUI.Button['default'] : craftercms.libs.MaterialUI.Button;
 const SystemIcon = craftercms.components.SystemIcon && Object.prototype.hasOwnProperty.call(craftercms.components.SystemIcon, 'default') ? craftercms.components.SystemIcon['default'] : craftercms.components.SystemIcon;
@@ -106,9 +107,6 @@ function ConvertTextToVideoDialog(props) {
         slide.distillation = value;
         createImage(index);
     };
-    var queueImage = function (index) {
-        createImage(index);
-    };
     var handleRegenerateImage = function (index) {
         createImage(index);
     };
@@ -118,13 +116,14 @@ function ConvertTextToVideoDialog(props) {
         var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/gentext.json?siteId=").concat(siteId, "&ask=").concat(distilation, "&mode=image");
         get(serviceUrl).subscribe({
             next: function (response) {
-                var resultImage = __spreadArray([], response.response.result, true)[0];
+                var resultImage = response.response.result[0];
                 if (resultImage) {
                     slide.image = resultImage;
                 }
                 else {
                     slide.image = "/failed";
                 }
+                setGeneratedContent(__spreadArray([], generatedContent, true));
             },
             error: function (e) {
                 console.log("Issue generating image for prompt " + distilation, e);
@@ -138,8 +137,23 @@ function ConvertTextToVideoDialog(props) {
         get(serviceUrl).subscribe({
             next: function (response) {
                 console.log(response.response.result);
+                var slides = response.response.result.slides;
+                // queue slide image creation
+                var imageRequests = [];
+                slides.forEach(function (slide) {
+                    var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/gentext.json?siteId=").concat(siteId, "&ask=").concat(slide.distillation, "&mode=image");
+                    imageRequests.push(get(serviceUrl));
+                });
+                // fire slide image creationm
+                forkJoin(imageRequests).subscribe(function (imageResults) {
+                    console.log(imageResults);
+                    slides.forEach(function (slide, index) {
+                        slide.image = imageResults[index].response.result[0];
+                    });
+                    setGeneratedContent(__spreadArray([], slides, true));
+                });
                 setFetching(false);
-                setGeneratedContent(__spreadArray([], response.response.result.slides, true));
+                setGeneratedContent(slides);
             },
             error: function (e) {
                 var _a, _b;
@@ -157,7 +171,7 @@ function ConvertTextToVideoDialog(props) {
                 React.createElement(Button, { onClick: handleGenerate, variant: "outlined", sx: { mr: 1 } }, "Generate"),
                 React.createElement(Button, { onClick: handleConstructVideo, variant: "outlined", sx: { mr: 1 } }, "Construct Video")),
             generatedContent &&
-                Object.values(generatedContent).map(function (slide, contentIndex) {
+                generatedContent.map(function (slide, contentIndex) {
                     return (React.createElement(Box, { key: contentIndex },
                         React.createElement(Box, null,
                             React.createElement(TextField, { sx: {
@@ -176,7 +190,7 @@ function ConvertTextToVideoDialog(props) {
                                 }, defaultValue: slide.distillation, onBlur: function (e) { return handleDistilationUpdate(e.target.value, contentIndex); }, multiline: true, variant: "filled" }),
                             React.createElement(IconButton, { onClick: function () { return handleRegenerateImage(contentIndex); }, color: "primary", "aria-label": "Regenerate Image", component: "label" },
                                 React.createElement(CachedRoundedIcon, null))),
-                        React.createElement("img", { style: { width: '200px' }, width: "200px", src: slide.image != null ? slide.image : queueImage(contentIndex) })));
+                        React.createElement("img", { style: { width: '200px' }, width: "200px", src: slide.image })));
                 }),
             React.createElement(AnswerSkeleton$1, { numOfItems: 5, renderBody: fetching }))));
 }
