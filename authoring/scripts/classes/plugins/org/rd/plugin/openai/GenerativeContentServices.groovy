@@ -141,9 +141,15 @@ class GenerativeContentServices {
             System.out.println("Grok: "+slide.distillation)
 
             // set slide image
-            slide.image = generateImageDownloadUrlForText(mainSubject + ": " + slide.distillation)
+            slide.image = null
+            // try {
+            //     slide.image = generateImageDownloadUrlForText(mainSubject + ": " + slide.distillation)[0]
+            // }
+            // catch(err) {
+            //     System.out.println("image generation issue :"+err)
+            // }
 
-            if(!slide.image) { slide.image = "https://storage.ning.com/topology/rest/1.0/file/get/1557487814?profile=original" }
+            // if(!slide.image) { slide.image = generateImageDownloadUrlForText("question")[0] }
 
             slides.add(slide)
         }

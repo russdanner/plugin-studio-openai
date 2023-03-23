@@ -179,7 +179,7 @@ export function GenerateContentDialog(props) {
             <section>
               <div>
                 {fetching === false ? (
-                  generatedContent.map((item) => (
+                  generatedContent.map((item) => [
                     <Card>
                       <CardHeader></CardHeader>
                       <CardMedia
@@ -196,7 +196,7 @@ export function GenerateContentDialog(props) {
                         Download this image
                       </a>
                     </Card>
-                  ))
+                  ])
                 ) : (
                   <></>
                 )}

@@ -1,9 +1,7 @@
 import * as React from 'react';
 import { useDispatch } from 'react-redux';
 import { get, post, postJSON } from '@craftercms/studio-ui/utils/ajax';
-import { Observable } from 'rxjs';
 import { map, pluck } from 'rxjs/operators';
-
 
 import { ChangeEvent, useState } from 'react';
 import Skeleton from '@mui/material/Skeleton';
@@ -12,37 +10,19 @@ import {
   Button,
   Card,
   CardHeader,
-  CardMedia,
   DialogActions,
   DialogContent,
-  DialogContentText,
-  Divider,
-  FormControlLabel,
-  FormLabel,
   IconButton,
-  Link,
-  Radio,
-  RadioGroup,
   TextField,
-  Typography
 } from '@mui/material';
 
-import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 
 import useActiveSiteId from '@craftercms/studio-ui/hooks/useActiveSiteId';
 import { ApiResponse, EmptyState, FolderBrowserTreeView, SearchBar, SearchItem } from '@craftercms/studio-ui';
-import { copyToClipboard } from '@craftercms/studio-ui/utils/system';
-import VolumeUpRoundedIcon from '@mui/icons-material/VolumeUpRounded';
 import ListItem from '@mui/material/ListItem';
 import List from '@mui/material/List';
-import { showSystemNotification } from '@craftercms/studio-ui/state/actions/system';
-
 import FormControl from '@mui/material/FormControl';
-import MediaCard from '@craftercms/studio-ui/components/MediaCard';
-import SecondaryButton from '@craftercms/studio-ui/components/SecondaryButton';
-import path from 'path';
-import { FormattedMessage } from 'react-intl';
-import { DownloadRounded } from '@mui/icons-material';
+import CachedRoundedIcon from '@mui/icons-material/CachedRounded';
 
 export function MediaSkeletonCard() {
   return (
@@ -107,28 +87,63 @@ export function ConvertTextToVideoDialog(props) {
   };
 
   const handleConstructVideo = () => {
-  
     let serviceUrl = `${PLUGIN_SERVICE_BASE}/construct-video.json?siteId=${siteId}`;
 
     setFetching(true);
 
-    console.log("post: " + serviceUrl);
+    console.log('post: ' + serviceUrl);
     console.log(generatedContent);
- 
-    postJSON(serviceUrl, generatedContent).pipe(map(() => true)).subscribe({
-      next() {
 
+    postJSON(serviceUrl, generatedContent)
+      .pipe(map(() => true))
+      .subscribe({
+        next() {},
+        error({ response }) {}
+      });
+
+    console.log('posted');
+  };
+
+  
+  const handleDistilationUpdate = (value, index) => {
+    let slide = generatedContent[index]
+    slide.distillation = value
+    createImage(index)
+  };
+
+  const queueImage = (index) => {
+    createImage(index)
+  };
+
+
+  const handleRegenerateImage = (index) => {
+    createImage(index)
+  };
+
+  const createImage = (index) => {
+
+    let slide = generatedContent[index]
+    let distilation = slide.distillation
+    
+    let serviceUrl = `${PLUGIN_SERVICE_BASE}/gentext.json?siteId=${siteId}&ask=${distilation}&mode=image`;
+    get(serviceUrl).subscribe({
+      next: (response) => {
+        let resultImage = [...response.response.result][0]
+
+        if(resultImage) {
+          slide.image = resultImage
+        }
+        else {
+          slide.image = "/failed"
+        }
+        
       },
-      error({ response }) {
-
+      error(e) {
+        console.log("Issue generating image for prompt "+distilation, e)
+        slide.image = "/failed"
       }
     });
-    
-
-    
-    console.log("posted");
-
-  };
+  }
 
   const handleGenerate = () => {
     let serviceUrl = `${PLUGIN_SERVICE_BASE}/page-to-video.json?siteId=${siteId}&url=${sourceUrl}`;
@@ -154,17 +169,11 @@ export function ConvertTextToVideoDialog(props) {
     });
   };
 
-
   return (
     <>
       <DialogContent>
         <FormControl margin="normal" fullWidth>
-          <TextField
-            defaultValue=""
-            id="outlined-basic"
-            label="URL to Convert"
-            variant="outlined"
-          />
+          <TextField defaultValue="" id="outlined-basic" label="URL to Convert" variant="outlined" />
         </FormControl>
         <DialogActions>
           <Button onClick={handleGenerate} variant="outlined" sx={{ mr: 1 }}>
@@ -174,62 +183,64 @@ export function ConvertTextToVideoDialog(props) {
           <Button onClick={handleConstructVideo} variant="outlined" sx={{ mr: 1 }}>
             Construct Video
           </Button>
-
         </DialogActions>
 
-
         {generatedContent &&
-                Object.values(generatedContent).map((slide, contentIndex) => {
-                  return (
-                    <Box>
-                      <Box>
-                        <TextField
-                          sx={{
-                            color: 'rgb(0, 122, 255)',
-                            width: '50%',
-                            'padding-bottom': '10px',
-                            'padding-right': '20px',
-                            mb: 2
-                          }}
-                          
-                          value={slide.text}
-                          multiline
+          Object.values(generatedContent).map((slide, contentIndex) => {
 
-                          variant="filled"
-                        />
+            return (
+              <Box key={contentIndex}>
+                <Box>
+                  <TextField
+                    sx={{
+                      color: 'rgb(0, 122, 255)',
+                      width: '50%',
+                      'padding-bottom': '10px',
+                      'padding-right': '20px',
+                      mb: 2
+                    }}
+                    defaultValue={slide.text}
+                    multiline
+                    variant="filled"
+                  />
 
-                        <TextField
-                          sx={{
-                            color: 'rgb(0, 122, 255)',
-                            width: '50%',
-                            'padding-bottom': '10px',
-                            'padding-right': '20px',
-                            mb: 2
-                          }}
-                          
-                          value={slide.distillation}
-                          multiline
+                  <TextField
+                    sx={{
+                      color: 'rgb(0, 122, 255)',
+                      width: '50%',
+                      'padding-bottom': '10px',
+                      'padding-right': '20px',
+                      mb: 2
+                    }}
+                    defaultValue={slide.distillation}
+                    onBlur={(e) => handleDistilationUpdate(e.target.value, contentIndex) }
+                    multiline
+                    variant="filled"
+                  />
 
-                          variant="filled"
-                        />
+                  <IconButton onClick={() => handleRegenerateImage(contentIndex)} color="primary" aria-label="Regenerate Image" component="label">
+                    <CachedRoundedIcon />
+                  </IconButton>
 
-                        <audio controls>
-  <source src={"/studio/api/2/plugin/script/plugins/org/rd/plugin/openai/openai/download-audio.json?siteId=" + siteId + "&text=" + slide.text } type="audio/mpeg" />
-Your browser does not support the audio element.
-</audio> 
+                  
+                  {/* <audio controls>
+                    <source
+                      src={
+                        '/studio/api/2/plugin/script/plugins/org/rd/plugin/openai/openai/download-audio.json?siteId=' +
+                        siteId +
+                        '&text=' +
+                        slide.text
+                      }
+                      type="audio/mpeg"
+                    />
+                    Your browser does not support the audio element.
+                  </audio> */}
+                </Box>
 
-                      </Box>
-
-
-                      <img style={{ width: '200px' }} width='200px' src={slide.image} />
-
-                    </Box>
-                  );
-                })}
-
-
-
-
+                <img style={{ width: '200px' }} width="200px" src={slide.image!=null ? slide.image : queueImage(contentIndex)} />
+              </Box>
+            );
+          })}
 
         <AnswerSkeleton numOfItems={5} renderBody={fetching} />
       </DialogContent>
@@ -238,4 +249,3 @@ Your browser does not support the audio element.
 }
 
 export default ConvertTextToVideoDialog;
-

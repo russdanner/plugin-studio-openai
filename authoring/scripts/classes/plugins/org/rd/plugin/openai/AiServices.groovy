@@ -78,7 +78,7 @@ class AiServices {
       images.add(image.getUrl())
     }
 
-    return images[0]
+    return images
   }
 
   def doDistillation(ask) {
@@ -89,33 +89,39 @@ class AiServices {
   * perform text completion
   */
   def doCompletion(ask) {
-    CompletionRequest completionRequest = CompletionRequest.builder()
-      .model("text-davinci-003")
-      .prompt(ask)
-      .echo(false)
-      .user(openAiUserId)
-      .maxTokens(350)
-      .build()
+      def generatedContent = []
 
-    def choices = openAiService.createCompletion(completionRequest).getChoices()
+    try {
+      CompletionRequest completionRequest = CompletionRequest.builder()
+        .model("text-davinci-003")
+        .prompt(ask)
+        .echo(false)
+        .user(openAiUserId)
+        .maxTokens(350)
+        .build()
 
-    def generatedContent = []
+      def choices = openAiService.createCompletion(completionRequest).getChoices()
 
-    choices.each { choice -> 
-      // All of the answers come as one string (bug in API?)
-      def answers = choice.text.split("\n")
+      choices.each { choice -> 
+        // All of the answers come as one string (bug in API?)
+        def answers = choice.text.split("\n")
 
-      answers.each { answer ->
-        if(answer && answer != "") {
-          // remove number label from each answer
-          def cleanedAnswer = answer.substring(answer.indexOf(". ")+1)
-          
-          // Clean quotes off string (may be better way long term to parse answers)
-          //cleanedAnswer = cleanedAnswer.substring(1,cleanedAnswer.length)
+        answers.each { answer ->
+          if(answer && answer != "") {
+            // remove number label from each answer
+            def cleanedAnswer = answer.substring(answer.indexOf(". ")+1)
+            
+            // Clean quotes off string (may be better way long term to parse answers)
+            //cleanedAnswer = cleanedAnswer.substring(1,cleanedAnswer.length)
 
-          generatedContent.add(cleanedAnswer)
+            generatedContent.add(cleanedAnswer)
+          }
         }
       }
+
+    }
+    catch(err) {
+      generatedContent = ["oops"]
     }
 
     return generatedContent

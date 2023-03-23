@@ -4,11 +4,12 @@ const { useSelector, useDispatch } = craftercms.libs.ReactRedux;
 const { postJSON, get } = craftercms.utils.ajax;
 const { map } = craftercms.libs.rxjs;
 const Skeleton = craftercms.libs.MaterialUI.Skeleton && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.Skeleton, 'default') ? craftercms.libs.MaterialUI.Skeleton['default'] : craftercms.libs.MaterialUI.Skeleton;
-const { DialogContent, TextField, DialogActions, Button, Box, Tooltip, FormLabel, RadioGroup, FormControlLabel, Radio, Card, CardHeader, CardMedia, DialogContentText, IconButton: IconButton$1 } = craftercms.libs.MaterialUI;
+const { DialogContent, TextField, DialogActions, Button, Box, IconButton, Tooltip, FormLabel, RadioGroup, FormControlLabel, Radio, Card, CardHeader, CardMedia, DialogContentText } = craftercms.libs.MaterialUI;
 const ListItem = craftercms.libs.MaterialUI.ListItem && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.ListItem, 'default') ? craftercms.libs.MaterialUI.ListItem['default'] : craftercms.libs.MaterialUI.ListItem;
 const List = craftercms.libs.MaterialUI.List && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.List, 'default') ? craftercms.libs.MaterialUI.List['default'] : craftercms.libs.MaterialUI.List;
 const FormControl = craftercms.libs.MaterialUI.FormControl && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.FormControl, 'default') ? craftercms.libs.MaterialUI.FormControl['default'] : craftercms.libs.MaterialUI.FormControl;
-const IconButton = craftercms.libs.MaterialUI.IconButton && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.IconButton, 'default') ? craftercms.libs.MaterialUI.IconButton['default'] : craftercms.libs.MaterialUI.IconButton;
+const CachedRoundedIcon = craftercms.utils.constants.components.get('@mui/icons-material/CachedRounded') && Object.prototype.hasOwnProperty.call(craftercms.utils.constants.components.get('@mui/icons-material/CachedRounded'), 'default') ? craftercms.utils.constants.components.get('@mui/icons-material/CachedRounded')['default'] : craftercms.utils.constants.components.get('@mui/icons-material/CachedRounded');
+const IconButton$1 = craftercms.libs.MaterialUI.IconButton && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.IconButton, 'default') ? craftercms.libs.MaterialUI.IconButton['default'] : craftercms.libs.MaterialUI.IconButton;
 const Button$1 = craftercms.libs.MaterialUI.Button && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.Button, 'default') ? craftercms.libs.MaterialUI.Button['default'] : craftercms.libs.MaterialUI.Button;
 const SystemIcon = craftercms.components.SystemIcon && Object.prototype.hasOwnProperty.call(craftercms.components.SystemIcon, 'default') ? craftercms.components.SystemIcon['default'] : craftercms.components.SystemIcon;
 const { createAction } = craftercms.libs.ReduxToolkit;
@@ -88,16 +89,48 @@ function ConvertTextToVideoDialog(props) {
     var handleConstructVideo = function () {
         var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/construct-video.json?siteId=").concat(siteId);
         setFetching(true);
-        console.log("post: " + serviceUrl);
+        console.log('post: ' + serviceUrl);
         console.log(generatedContent);
-        postJSON(serviceUrl, generatedContent).pipe(map(function () { return true; })).subscribe({
-            next: function () {
-            },
+        postJSON(serviceUrl, generatedContent)
+            .pipe(map(function () { return true; }))
+            .subscribe({
+            next: function () { },
             error: function (_a) {
                 _a.response;
             }
         });
-        console.log("posted");
+        console.log('posted');
+    };
+    var handleDistilationUpdate = function (value, index) {
+        var slide = generatedContent[index];
+        slide.distillation = value;
+        createImage(index);
+    };
+    var queueImage = function (index) {
+        createImage(index);
+    };
+    var handleRegenerateImage = function (index) {
+        createImage(index);
+    };
+    var createImage = function (index) {
+        var slide = generatedContent[index];
+        var distilation = slide.distillation;
+        var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/gentext.json?siteId=").concat(siteId, "&ask=").concat(distilation, "&mode=image");
+        get(serviceUrl).subscribe({
+            next: function (response) {
+                var resultImage = __spreadArray([], response.response.result, true)[0];
+                if (resultImage) {
+                    slide.image = resultImage;
+                }
+                else {
+                    slide.image = "/failed";
+                }
+            },
+            error: function (e) {
+                console.log("Issue generating image for prompt " + distilation, e);
+                slide.image = "/failed";
+            }
+        });
     };
     var handleGenerate = function () {
         var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/page-to-video.json?siteId=").concat(siteId, "&url=").concat(sourceUrl);
@@ -125,7 +158,7 @@ function ConvertTextToVideoDialog(props) {
                 React.createElement(Button, { onClick: handleConstructVideo, variant: "outlined", sx: { mr: 1 } }, "Construct Video")),
             generatedContent &&
                 Object.values(generatedContent).map(function (slide, contentIndex) {
-                    return (React.createElement(Box, null,
+                    return (React.createElement(Box, { key: contentIndex },
                         React.createElement(Box, null,
                             React.createElement(TextField, { sx: {
                                     color: 'rgb(0, 122, 255)',
@@ -133,18 +166,17 @@ function ConvertTextToVideoDialog(props) {
                                     'padding-bottom': '10px',
                                     'padding-right': '20px',
                                     mb: 2
-                                }, value: slide.text, multiline: true, variant: "filled" }),
+                                }, defaultValue: slide.text, multiline: true, variant: "filled" }),
                             React.createElement(TextField, { sx: {
                                     color: 'rgb(0, 122, 255)',
                                     width: '50%',
                                     'padding-bottom': '10px',
                                     'padding-right': '20px',
                                     mb: 2
-                                }, value: slide.distillation, multiline: true, variant: "filled" }),
-                            React.createElement("audio", { controls: true },
-                                React.createElement("source", { src: "/studio/api/2/plugin/script/plugins/org/rd/plugin/openai/openai/download-audio.json?siteId=" + siteId + "&text=" + slide.text, type: "audio/mpeg" }),
-                                "Your browser does not support the audio element.")),
-                        React.createElement("img", { style: { width: '200px' }, width: '200px', src: slide.image })));
+                                }, defaultValue: slide.distillation, onBlur: function (e) { return handleDistilationUpdate(e.target.value, contentIndex); }, multiline: true, variant: "filled" }),
+                            React.createElement(IconButton, { onClick: function () { return handleRegenerateImage(contentIndex); }, color: "primary", "aria-label": "Regenerate Image", component: "label" },
+                                React.createElement(CachedRoundedIcon, null))),
+                        React.createElement("img", { style: { width: '200px' }, width: "200px", src: slide.image != null ? slide.image : queueImage(contentIndex) })));
                 }),
             React.createElement(AnswerSkeleton$1, { numOfItems: 5, renderBody: fetching }))));
 }
@@ -208,7 +240,7 @@ function GenerateContent$1(props) {
         }));
     };
     return useIcon ? (React.createElement(Tooltip, { title: item ? "".concat(label) : '' },
-        React.createElement(IconButton, { size: "small", onClick: handleClick, disabled: !item },
+        React.createElement(IconButton$1, { size: "small", onClick: handleClick, disabled: !item },
             React.createElement(SystemIcon, { icon: { id: iconId } })))) : (React.createElement(Button$1, { size: "small", variant: "text", onClick: handleClick, disabled: !item }, label));
 }
 
@@ -299,10 +331,12 @@ function GenerateContentDialog(props) {
                 React.createElement(Button, { onClick: handleGenerate, variant: "outlined", sx: { mr: 1 } }, "Generate")),
             mode === 'image' ? (React.createElement(Box, { display: "flex" },
                 React.createElement("section", null,
-                    React.createElement("div", null, fetching === false ? (generatedContent.map(function (item) { return (React.createElement(Card, null,
-                        React.createElement(CardHeader, null),
-                        React.createElement(CardMedia, { image: item, sx: { width: '500px', height: '500px', margin: '30px', m: '15px', border: '1px solid' } }),
-                        React.createElement("a", { download: item, href: item, target: "_blank", style: { paddingBottom: '10px', paddingTop: '20px' } }, "Download this image"))); })) : (React.createElement(React.Fragment, null)))))) : (React.createElement(DialogContentText, null,
+                    React.createElement("div", null, fetching === false ? (generatedContent.map(function (item) { return [
+                        React.createElement(Card, null,
+                            React.createElement(CardHeader, null),
+                            React.createElement(CardMedia, { image: item, sx: { width: '500px', height: '500px', margin: '30px', m: '15px', border: '1px solid' } }),
+                            React.createElement("a", { download: item, href: item, target: "_blank", style: { paddingBottom: '10px', paddingTop: '20px' } }, "Download this image"))
+                    ]; })) : (React.createElement(React.Fragment, null)))))) : (React.createElement(DialogContentText, null,
                 React.createElement("ol", null, generatedContent &&
                     Object.values(generatedContent).map(function (content, contentIndex) {
                         return (React.createElement("li", null,
@@ -313,7 +347,7 @@ function GenerateContentDialog(props) {
                                     'padding-right': '20px',
                                     mb: 2
                                 }, value: content, multiline: true }),
-                            React.createElement(IconButton$1, { onClick: copyResult, color: "primary", "aria-label": "Copy to Clipboard", component: "label" },
+                            React.createElement(IconButton, { onClick: copyResult, color: "primary", "aria-label": "Copy to Clipboard", component: "label" },
                                 React.createElement(ContentCopyRoundedIcon, null))));
                     })))),
             React.createElement(AnswerSkeleton, { numOfItems: 5, renderBody: fetching }))));
@@ -339,7 +373,7 @@ function GenerateContent(props) {
         }));
     };
     return useIcon ? (React.createElement(Tooltip, { title: item ? "".concat(label) : '' },
-        React.createElement(IconButton, { size: "small", onClick: handleClick, disabled: !item },
+        React.createElement(IconButton$1, { size: "small", onClick: handleClick, disabled: !item },
             React.createElement(SystemIcon, { icon: { id: iconId } })))) : (React.createElement(Button$1, { size: "small", variant: "text", onClick: handleClick, disabled: !item }, label));
 }
 
