@@ -113,6 +113,11 @@ function ConvertTextToVideoDialog(props) {
             }
         });
     };
+    var handleTextUpdate = function (value, index) {
+        var slide = generatedContent[index];
+        slide.text = value;
+        setGeneratedContent(__spreadArray([], generatedContent, true));
+    };
     var handleDistilationUpdate = function (value, index) {
         var slide = generatedContent[index];
         slide.distillation = value;
@@ -221,7 +226,7 @@ function ConvertTextToVideoDialog(props) {
                                     'padding-bottom': '10px',
                                     'padding-right': '20px',
                                     mb: 2
-                                }, defaultValue: slide.text, multiline: true, variant: "filled" }),
+                                }, defaultValue: slide.text, onBlur: function (e) { return handleTextUpdate(e.target.value, contentIndex); }, multiline: true, variant: "filled" }),
                             React.createElement(TextField, { sx: {
                                     color: 'rgb(0, 122, 255)',
                                     width: '50%',

@@ -113,6 +113,12 @@ export function ConvertTextToVideoDialog(props) {
       });
   };
 
+  const handleTextUpdate = (value, index) => {
+    let slide = generatedContent[index]
+    slide.text = value
+    setGeneratedContent([...generatedContent])
+  };
+
   const handleDistilationUpdate = (value, index) => {
     let slide = generatedContent[index]
     slide.distillation = value
@@ -307,6 +313,7 @@ export function ConvertTextToVideoDialog(props) {
                       mb: 2
                     }}
                     defaultValue={slide.text}
+                    onBlur={(e) => handleTextUpdate(e.target.value, contentIndex) }
                     multiline
                     variant="filled"
                   />
