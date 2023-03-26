@@ -12,32 +12,24 @@ import {
   DialogActions,
   DialogContent,
   DialogContentText,
-  Divider,
   FormControlLabel,
   FormLabel,
   IconButton,
-  Link,
   Radio,
   RadioGroup,
   TextField,
-  Typography
 } from '@mui/material';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import { get } from '@craftercms/studio-ui/utils/ajax';
 
 import useActiveSiteId from '@craftercms/studio-ui/hooks/useActiveSiteId';
-import { ApiResponse, EmptyState, FolderBrowserTreeView, SearchBar, SearchItem } from '@craftercms/studio-ui';
+import { ApiResponse } from '@craftercms/studio-ui';
 import { copyToClipboard } from '@craftercms/studio-ui/utils/system';
 import ListItem from '@mui/material/ListItem';
 import List from '@mui/material/List';
 import { showSystemNotification } from '@craftercms/studio-ui/state/actions/system';
 
 import FormControl from '@mui/material/FormControl';
-import MediaCard from '@craftercms/studio-ui/components/MediaCard';
-import SecondaryButton from '@craftercms/studio-ui/components/SecondaryButton';
-import path from 'path';
-import { FormattedMessage } from 'react-intl';
-import { DownloadRounded } from '@mui/icons-material';
 
 export function MediaSkeletonCard() {
   const classes = useCardStyles();
@@ -120,10 +112,9 @@ export function GenerateContentDialog(props) {
 
     get(serviceUrl).subscribe({
       next: (response) => {
-        console.log(response.response.result);
+        console.log(response);
 
         setFetching(false);
-
         setGeneratedContent([...response.response.result]);
       },
       error(e) {

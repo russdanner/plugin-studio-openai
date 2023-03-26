@@ -7,6 +7,9 @@ import org.slf4j.LoggerFactory
 
 import java.nio.file.Files
 import java.nio.file.Path
+import java.io.FileInputStream
+import java.io.BufferedInputStream
+
 import java.nio.file.StandardCopyOption
 
 import groovy.json.JsonSlurper
@@ -19,6 +22,8 @@ import groovyx.net.http.optional.Download
 
 
 class GenerativeContentServices {
+
+    private static final Logger logger = LoggerFactory.getLogger(GenerativeContentServices.class)
 
     def audioVideoServices 
     def aiServices
@@ -51,6 +56,7 @@ class GenerativeContentServices {
         return slideDefinitions
     }
 
+
     /**
      * prepare a video from text
      */
@@ -63,6 +69,12 @@ class GenerativeContentServices {
         return slideDefinitions
     }
 
+    def getFinalDownload(id) {
+        def dir = Files.createTempDirectory(path).getParent();    
+        def finalFile = dir.resolve("movie-work"+id+"/final.mp4").toFIle()
+        def finalFileInputStream = new BufferedInputStream(new FileInputStream(finalFile))
+        return finalFileInputStream
+    }
 
     /**
      * use slide definitions to construct video
@@ -75,6 +87,9 @@ class GenerativeContentServices {
         def fullAudioText = ""
         def path = "movie-work"
         Path dir = Files.createTempDirectory(path);
+        
+        def moveId = dir.toFile().getName()
+        moveId = moveId.replace(path, "")
 
         slideDefinitions.each { slide -> 
             
@@ -104,8 +119,6 @@ class GenerativeContentServices {
         Files.copy(fullAudioInputstream, fullAudioPath, StandardCopyOption.REPLACE_EXISTING)
 
         // create mp4 version of audio
-        //def cleanedFullAudioPath = dir.resolve("audio-full-cleam.mp3")
-        //audioVideoServices.cleanMp3(fullAudioPath, cleanedFullAudioPath)
         audioVideoServices.convertMp3ToMp4(dir)
         def fullAudioAsMp4Path = dir.resolve("audio-full-converted.mp4")
 
@@ -117,7 +130,7 @@ class GenerativeContentServices {
         def finalVideoPath = dir.resolve("final.mp4")
         audioVideoServices.addAudioToVideo(stitchedVideoPath, fullAudioAsMp4Path, finalVideoPath)
         
-        return finalVideoUrl
+        return moveId
     }
 
     /**
@@ -137,20 +150,11 @@ class GenerativeContentServices {
             // distill text
             slide.distillation = aiServices.doDistillation(text)
 
-            System.out.println("Text: "+text)
-            System.out.println("Grok: "+slide.distillation)
+            logger.debug("Text: "+text)
+            logger.debug("Grok: "+slide.distillation)
 
             // set slide image
             slide.image = null
-            // try {
-            //     slide.image = generateImageDownloadUrlForText(mainSubject + ": " + slide.distillation)[0]
-            // }
-            // catch(err) {
-            //     System.out.println("image generation issue :"+err)
-            // }
-
-            // if(!slide.image) { slide.image = generateImageDownloadUrlForText("question")[0] }
-
             slides.add(slide)
         }
 
@@ -167,7 +171,7 @@ class GenerativeContentServices {
             image = aiServices.doImageGeneration(text)
         }
         catch(err) {
-            System.out.println("Image request failed :" + err)
+            logger.error("Image request failed :" + err)
         }
 
         return image
@@ -183,7 +187,7 @@ class GenerativeContentServices {
             audio = aiServices.doTextToSpeech(text)
         }
         catch(err) {
-            System.out.println("Audio request failed :" + err)
+            logger.debug("Audio request failed :" + err)
         }
        
         return audio   

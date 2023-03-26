@@ -2,9 +2,8 @@ const React = craftercms.libs.React;
 const { useState } = craftercms.libs.React;
 const { useSelector, useDispatch } = craftercms.libs.ReactRedux;
 const { postJSON, get } = craftercms.utils.ajax;
-const { map } = craftercms.libs.rxjs;
 const Skeleton = craftercms.libs.MaterialUI.Skeleton && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.Skeleton, 'default') ? craftercms.libs.MaterialUI.Skeleton['default'] : craftercms.libs.MaterialUI.Skeleton;
-const { DialogContent, TextField, DialogActions, Button, Box, IconButton, Tooltip, FormLabel, RadioGroup, FormControlLabel, Radio, Card, CardHeader, CardMedia, DialogContentText } = craftercms.libs.MaterialUI;
+const { DialogContent, TextField, FormLabel, RadioGroup, FormControlLabel, Radio, DialogActions, Button, Box, IconButton, Tooltip, Card, CardHeader, CardMedia, DialogContentText } = craftercms.libs.MaterialUI;
 const ListItem = craftercms.libs.MaterialUI.ListItem && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.ListItem, 'default') ? craftercms.libs.MaterialUI.ListItem['default'] : craftercms.libs.MaterialUI.ListItem;
 const List = craftercms.libs.MaterialUI.List && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.List, 'default') ? craftercms.libs.MaterialUI.List['default'] : craftercms.libs.MaterialUI.List;
 const FormControl = craftercms.libs.MaterialUI.FormControl && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.FormControl, 'default') ? craftercms.libs.MaterialUI.FormControl['default'] : craftercms.libs.MaterialUI.FormControl;
@@ -84,36 +83,57 @@ function ConvertTextToVideoDialog(props) {
     var _a = useState(); _a[0]; var setError = _a[1];
     var _b = useState(false), fetching = _b[0], setFetching = _b[1];
     var _c = useState([]), generatedContent = _c[0], setGeneratedContent = _c[1];
-    var _d = React.useState(''), sourceUrl = _d[0]; _d[1];
-    var _e = React.useState('complete'); _e[0]; _e[1];
+    var _d = useState(null), finalDownloadUrl = _d[0], setFinalDownloadUrl = _d[1];
+    var _e = React.useState(''), mainIdea = _e[0], setMainIdea = _e[1];
+    var _f = React.useState(''), commonImageInstructions = _f[0], setCommonImageInstructions = _f[1];
+    var _g = React.useState('text'), source = _g[0], setSource = _g[1];
+    var _h = React.useState(''), sourceContent = _h[0], setSourceContent = _h[1];
     var PLUGIN_SERVICE_BASE = '/studio/api/2/plugin/script/plugins/org/rd/plugin/openai/openai';
+    var handleSourceChange = function (event) {
+        alert("Text is the only supported source at this time.");
+        setSource(event.target.value);
+    };
     var handleConstructVideo = function () {
         var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/construct-video.json?siteId=").concat(siteId);
         setFetching(true);
+        setFinalDownloadUrl(null);
         console.log('post: ' + serviceUrl);
         console.log(generatedContent);
         postJSON(serviceUrl, generatedContent)
-            .pipe(map(function () { return true; }))
             .subscribe({
-            next: function () { },
+            next: function (response) {
+                setFetching(false);
+                console.log(response);
+                var id = response.response.result.id;
+                setFinalDownloadUrl("".concat(PLUGIN_SERVICE_BASE, "/download-final.json?id=").concat(id));
+            },
             error: function (_a) {
                 _a.response;
+                setFetching(false);
             }
         });
-        console.log('posted');
     };
     var handleDistilationUpdate = function (value, index) {
         var slide = generatedContent[index];
         slide.distillation = value;
-        createImage(index);
+        slide.image = null;
+        setGeneratedContent(__spreadArray([], generatedContent, true));
+        createImage(index, true);
     };
     var handleRegenerateImage = function (index) {
+        var slide = generatedContent[index];
+        slide.image = null;
+        setGeneratedContent(__spreadArray([], generatedContent, true));
+        setFinalDownloadUrl(null);
         createImage(index);
     };
-    var createImage = function (index) {
+    var createImage = function (index, refine) {
+        if (refine === void 0) { refine = false; }
         var slide = generatedContent[index];
-        var distilation = slide.distillation;
-        var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/gentext.json?siteId=").concat(siteId, "&ask=").concat(distilation, "&mode=image");
+        slide.image = null;
+        setGeneratedContent(__spreadArray([], generatedContent, true));
+        var ask = commonImageInstructions + " " + mainIdea + ": " + slide.distillation;
+        var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/gentext.json?siteId=").concat(siteId, "&ask=").concat(ask, "&mode=image&refine=").concat(refine);
         get(serviceUrl).subscribe({
             next: function (response) {
                 var resultImage = response.response.result[0];
@@ -126,13 +146,14 @@ function ConvertTextToVideoDialog(props) {
                 setGeneratedContent(__spreadArray([], generatedContent, true));
             },
             error: function (e) {
-                console.log("Issue generating image for prompt " + distilation, e);
+                console.log("Issue generating image for prompt " + ask, e);
                 slide.image = "/failed";
             }
         });
     };
     var handleGenerate = function () {
-        var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/page-to-video.json?siteId=").concat(siteId, "&url=").concat(sourceUrl);
+        var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/page-to-video.json?siteId=").concat(siteId, "&mainIdea=").concat(mainIdea, "&content=").concat(sourceContent, "&source=").concat(source);
+        setFinalDownloadUrl(null);
         setFetching(true);
         get(serviceUrl).subscribe({
             next: function (response) {
@@ -141,7 +162,8 @@ function ConvertTextToVideoDialog(props) {
                 // queue slide image creation
                 var imageRequests = [];
                 slides.forEach(function (slide) {
-                    var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/gentext.json?siteId=").concat(siteId, "&ask=").concat(slide.distillation, "&mode=image");
+                    var ask = commonImageInstructions + " " + mainIdea + ": " + slide.distillation;
+                    var serviceUrl = "".concat(PLUGIN_SERVICE_BASE, "/gentext.json?siteId=").concat(siteId, "&ask=").concat(ask, "&mode=image");
                     imageRequests.push(get(serviceUrl));
                 });
                 // fire slide image creationm
@@ -151,9 +173,10 @@ function ConvertTextToVideoDialog(props) {
                         slide.image = imageResults[index].response.result[0];
                     });
                     setGeneratedContent(__spreadArray([], slides, true));
+                    setFetching(false);
                 });
-                setFetching(false);
                 setGeneratedContent(slides);
+                setFetching(false);
             },
             error: function (e) {
                 var _a, _b;
@@ -163,16 +186,30 @@ function ConvertTextToVideoDialog(props) {
             }
         });
     };
+    var handleDownloadFinal = function () {
+        window.open(finalDownloadUrl);
+    };
     return (React.createElement(React.Fragment, null,
         React.createElement(DialogContent, null,
             React.createElement(FormControl, { margin: "normal", fullWidth: true },
-                React.createElement(TextField, { defaultValue: "", id: "outlined-basic", label: "URL to Convert", variant: "outlined" })),
+                React.createElement(TextField, { onBlur: function (e) { return setMainIdea(e.target.value); }, defaultValue: "", id: "outlined-basic", label: "Main Idea", variant: "outlined" })),
+            React.createElement(FormControl, null,
+                React.createElement(FormLabel, { id: "demo-row-radio-buttons-group-label" }, "Content Source"),
+                React.createElement(RadioGroup, { row: true, "aria-labelledby": "demo-row-radio-buttons-group-label", name: "row-radio-buttons-group", value: source, onChange: handleSourceChange },
+                    React.createElement(FormControlLabel, { value: "text", control: React.createElement(Radio, null), label: "Text" }),
+                    React.createElement(FormControlLabel, { value: "content item", control: React.createElement(Radio, null), label: "Content" }),
+                    React.createElement(FormControlLabel, { value: "web", control: React.createElement(Radio, null), label: "Web URL" }))),
+            React.createElement(FormControl, { margin: "normal", fullWidth: true },
+                React.createElement(TextField, { defaultValue: "", onBlur: function (e) { return setSourceContent(e.target.value); }, id: "outlined-basic", label: "Text", variant: "outlined" })),
+            React.createElement(FormControl, { margin: "normal", fullWidth: true },
+                React.createElement(TextField, { defaultValue: "", onBlur: function (e) { return setCommonImageInstructions(e.target.value); }, id: "outlined-basic", label: "Common Image Instructions", variant: "outlined" })),
             React.createElement(DialogActions, null,
                 React.createElement(Button, { onClick: handleGenerate, variant: "outlined", sx: { mr: 1 } }, "Generate"),
-                React.createElement(Button, { onClick: handleConstructVideo, variant: "outlined", sx: { mr: 1 } }, "Construct Video")),
+                React.createElement(Button, { disabled: generatedContent.length === 0, onClick: handleConstructVideo, variant: "outlined", sx: { mr: 1 } }, "Construct Video"),
+                React.createElement(Button, { disabled: finalDownloadUrl === null, onClick: handleDownloadFinal, variant: "outlined", sx: { mr: 1 } }, "DownloadFinal")),
             generatedContent &&
                 generatedContent.map(function (slide, contentIndex) {
-                    return (React.createElement(Box, { key: contentIndex },
+                    return (React.createElement(Box, { key: contentIndex, sx: { display: (fetching == false) ? "block" : "none", padding: "15px" } },
                         React.createElement(Box, null,
                             React.createElement(TextField, { sx: {
                                     color: 'rgb(0, 122, 255)',
@@ -187,10 +224,11 @@ function ConvertTextToVideoDialog(props) {
                                     'padding-bottom': '10px',
                                     'padding-right': '20px',
                                     mb: 2
-                                }, defaultValue: slide.distillation, onBlur: function (e) { return handleDistilationUpdate(e.target.value, contentIndex); }, multiline: true, variant: "filled" }),
-                            React.createElement(IconButton, { onClick: function () { return handleRegenerateImage(contentIndex); }, color: "primary", "aria-label": "Regenerate Image", component: "label" },
-                                React.createElement(CachedRoundedIcon, null))),
-                        React.createElement("img", { style: { width: '200px' }, width: "200px", src: slide.image })));
+                                }, defaultValue: slide.distillation, onBlur: function (e) { return handleDistilationUpdate(e.target.value, contentIndex); }, multiline: true, variant: "filled" })),
+                        React.createElement("img", { style: { width: '200px' }, width: "200px", src: slide.image }),
+                        React.createElement(Skeleton, { sx: { display: (slide.image === null) ? "block" : "none", padding: "15px" }, variant: "rectangular", width: "200px", height: "200px" }),
+                        React.createElement(IconButton, { onClick: function () { return handleRegenerateImage(contentIndex); }, color: "primary", "aria-label": "Regenerate Image", component: "label" },
+                            React.createElement(CachedRoundedIcon, null))));
                 }),
             React.createElement(AnswerSkeleton$1, { numOfItems: 5, renderBody: fetching }))));
 }
@@ -316,7 +354,7 @@ function GenerateContentDialog(props) {
         setFetching(true);
         get(serviceUrl).subscribe({
             next: function (response) {
-                console.log(response.response.result);
+                console.log(response);
                 setFetching(false);
                 setGeneratedContent(__spreadArray([], response.response.result, true));
             },

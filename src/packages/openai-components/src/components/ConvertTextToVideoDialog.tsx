@@ -12,7 +12,11 @@ import {
   CardHeader,
   DialogActions,
   DialogContent,
+  FormControlLabel,
+  FormLabel,
   IconButton,
+  Radio,
+  RadioGroup,
   TextField,
 } from '@mui/material';
 
@@ -23,19 +27,10 @@ import ListItem from '@mui/material/ListItem';
 import List from '@mui/material/List';
 import FormControl from '@mui/material/FormControl';
 import CachedRoundedIcon from '@mui/icons-material/CachedRounded';
+import VolumeUpRoundedIcon from '@mui/icons-material/VolumeUpRounded';
 import { forkJoin } from 'rxjs';
 
-export function MediaSkeletonCard() {
-  return (
-    <Card>
-      <CardHeader
-        avatar={<Skeleton variant="circular" width={24} height={24} />}
-        title={<Skeleton animation="wave" height={20} width="100%" />}
-      />
-      <Skeleton animation="wave" variant="rectangular" />
-    </Card>
-  );
-}
+
 
 function AnswerSkeletonItem() {
   return (
@@ -77,59 +72,78 @@ export function ConvertTextToVideoDialog(props) {
   const [error, setError] = useState();
   const [fetching, setFetching] = useState(false);
   const [generatedContent, setGeneratedContent] = useState([]);
+  const [finalDownloadUrl, setFinalDownloadUrl] = useState(null);
 
-  
-  const [sourceUrl, setSourceUrl] = React.useState('');
-  const [mode, setMode] = React.useState('complete');
+  const [mainIdea, setMainIdea] = React.useState('');
+  const [commonImageInstructions, setCommonImageInstructions] = React.useState('');
+  const [source, setSource] = React.useState('text');  
+  const [sourceContent, setSourceContent] = React.useState('');
 
   const PLUGIN_SERVICE_BASE = '/studio/api/2/plugin/script/plugins/org/rd/plugin/openai/openai';
 
-  const handleSourceUrlChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSourceUrl(event.target.value as string);
+  const handleSourceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    alert("Text is the only supported source at this time.")
+    setSource(event.target.value as string);
   };
 
   const handleConstructVideo = () => {
     let serviceUrl = `${PLUGIN_SERVICE_BASE}/construct-video.json?siteId=${siteId}`;
 
     setFetching(true);
+    setFinalDownloadUrl(null)
 
     console.log('post: ' + serviceUrl);
     console.log(generatedContent);
 
     postJSON(serviceUrl, generatedContent)
-      .pipe(map(() => true))
       .subscribe({
-        next() {},
-        error({ response }) {}
-      });
+        next: (response) => {
 
-    console.log('posted');
+          setFetching(false);
+
+          console.log(response);          
+          let id = (response as any).response.result.id
+          setFinalDownloadUrl(`${PLUGIN_SERVICE_BASE}/download-final.json?id=${id}`)
+
+        },
+        error({ response }) {
+          setFetching(false);
+
+        }
+      });
   };
 
-  
   const handleDistilationUpdate = (value, index) => {
     let slide = generatedContent[index]
     slide.distillation = value
-    createImage(index)
-  };
 
-  const queueImage = (index) => {
-    createImage(index)
+    slide.image = null
+    setGeneratedContent([...generatedContent])
+
+    createImage(index, true)
   };
 
 
   const handleRegenerateImage = (index) => {
+    let slide = generatedContent[index]
+    slide.image = null
+    setGeneratedContent([...generatedContent])
+    setFinalDownloadUrl(null)
     createImage(index)
   };
 
-  const createImage = (index) => {
+  const createImage = (index, refine=false) => {
 
     let slide = generatedContent[index]
-    let distilation = slide.distillation
-    
-    let serviceUrl = `${PLUGIN_SERVICE_BASE}/gentext.json?siteId=${siteId}&ask=${distilation}&mode=image`;
+    slide.image = null
+    setGeneratedContent([...generatedContent])
+
+    let ask = commonImageInstructions + " " + mainIdea + ": " + slide.distillation
+    let serviceUrl = `${PLUGIN_SERVICE_BASE}/gentext.json?siteId=${siteId}&ask=${ask}&mode=image&refine=${refine}`;
+
     get(serviceUrl).subscribe({
       next: (response) => {
+
         let resultImage = response.response.result[0]
 
         if(resultImage) {
@@ -140,18 +154,18 @@ export function ConvertTextToVideoDialog(props) {
           slide.image = "/failed"
         }
         setGeneratedContent([...generatedContent])
-        
       },
       error(e) {
-        console.log("Issue generating image for prompt "+distilation, e)
+        console.log("Issue generating image for prompt "+ask, e)
         slide.image = "/failed"
       }
     });
   }
 
   const handleGenerate = () => {
-    let serviceUrl = `${PLUGIN_SERVICE_BASE}/page-to-video.json?siteId=${siteId}&url=${sourceUrl}`;
 
+    let serviceUrl = `${PLUGIN_SERVICE_BASE}/page-to-video.json?siteId=${siteId}&mainIdea=${mainIdea}&content=${sourceContent}&source=${source}`;
+    setFinalDownloadUrl(null)
     setFetching(true);
 
     get(serviceUrl).subscribe({
@@ -162,7 +176,8 @@ export function ConvertTextToVideoDialog(props) {
         // queue slide image creation
         let imageRequests = []
         slides.forEach((slide) => {
-          let serviceUrl = `${PLUGIN_SERVICE_BASE}/gentext.json?siteId=${siteId}&ask=${slide.distillation}&mode=image`;
+          let ask = commonImageInstructions + " " + mainIdea + ": " + slide.distillation
+          let serviceUrl = `${PLUGIN_SERVICE_BASE}/gentext.json?siteId=${siteId}&ask=${ask}&mode=image`;
           imageRequests.push(get(serviceUrl))
         })
 
@@ -175,11 +190,11 @@ export function ConvertTextToVideoDialog(props) {
             })
 
             setGeneratedContent([...slides])
+            setFetching(false);
           })
 
-
-        setFetching(false);
         setGeneratedContent(slides);
+        setFetching(false);
       },
       error(e) {
         console.error(e);
@@ -192,27 +207,90 @@ export function ConvertTextToVideoDialog(props) {
     });
   };
 
+  const handleDownloadFinal = () => {
+    var reportWindow = window.open(finalDownloadUrl);
+  }
+
+  const playAudio = (index) => {
+
+  }
+
+  const downloadFromUrlWithJWT = (url) => {
+    var postData = new FormData();
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    let csrftoken = "" 
+    xhr.setRequestHeader('X-CSRFToken', csrftoken);
+    xhr.responseType = 'blob';
+
+    xhr.onload = function (e) {
+      var blob = (e.currentTarget as any).response;
+      var contentDispo = (e.currentTarget as any).getResponseHeader('Content-Disposition');
+      var fileName = contentDispo.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)[1];
+      //saveOrOpenBlob(blob, fileName);
+    }
+    
+    xhr.send(postData);
+  }
+
   return (
     <>
       <DialogContent>
-        <FormControl margin="normal" fullWidth>
-          <TextField defaultValue="" id="outlined-basic" label="URL to Convert" variant="outlined" />
+
+      <FormControl margin="normal" fullWidth>
+          <TextField  onBlur={(e)=>setMainIdea(e.target.value)}  defaultValue="" id="outlined-basic" label="Main Idea" variant="outlined" />
         </FormControl>
+
+      <FormControl>
+          <FormLabel id="demo-row-radio-buttons-group-label">Content Source</FormLabel>
+          <RadioGroup
+            row
+            aria-labelledby="demo-row-radio-buttons-group-label"
+            name="row-radio-buttons-group"
+            value={source}
+            onChange={handleSourceChange}
+          >
+            <FormControlLabel value="text" control={<Radio />} label="Text" />
+            <FormControlLabel value="content item" control={<Radio />} label="Content" />
+            <FormControlLabel value="web" control={<Radio />} label="Web URL" />
+
+          </RadioGroup>
+        </FormControl>
+
+        <FormControl margin="normal" fullWidth>
+          <TextField defaultValue="" onBlur={(e)=>setSourceContent(e.target.value)} id="outlined-basic" label="Text" variant="outlined" />
+        </FormControl>
+
+        <FormControl margin="normal" fullWidth>
+          <TextField defaultValue="" onBlur={(e)=>setCommonImageInstructions(e.target.value)} id="outlined-basic" label="Common Image Instructions" variant="outlined" />
+        </FormControl>
+
+
         <DialogActions>
           <Button onClick={handleGenerate} variant="outlined" sx={{ mr: 1 }}>
             Generate
           </Button>
 
-          <Button onClick={handleConstructVideo} variant="outlined" sx={{ mr: 1 }}>
+          <Button disabled={generatedContent.length===0} onClick={handleConstructVideo} variant="outlined" sx={{ mr: 1 }}>
             Construct Video
           </Button>
+
+          <Button disabled={finalDownloadUrl===null} onClick={handleDownloadFinal} variant="outlined" sx={{ mr: 1 }}>
+            DownloadFinal
+          </Button>
+          
         </DialogActions>
+
+        {/* <audio id="audio" controls>
+          Your browser does not support the audio element.
+        </audio>  */}
 
         {generatedContent &&
           generatedContent.map((slide, contentIndex) => {
 
             return (
-              <Box key={contentIndex}>
+              <Box key={contentIndex}  sx={{ display: (fetching==false) ? "block": "none", padding:"15px"}}>
                 <Box>
                   <TextField
                     sx={{
@@ -241,26 +319,18 @@ export function ConvertTextToVideoDialog(props) {
                     variant="filled"
                   />
 
-                  <IconButton onClick={() => handleRegenerateImage(contentIndex)} color="primary" aria-label="Regenerate Image" component="label">
-                    <CachedRoundedIcon />
-                  </IconButton>
-
-                  
-                  {/* <audio controls>
-                    <source
-                      src={
-                        '/studio/api/2/plugin/script/plugins/org/rd/plugin/openai/openai/download-audio.json?siteId=' +
-                        siteId +
-                        '&text=' +
-                        slide.text
-                      }
-                      type="audio/mpeg"
-                    />
-                    Your browser does not support the audio element.
-                  </audio> */}
                 </Box>
 
                 <img style={{ width: '200px' }} width="200px" src={slide.image} />
+                <Skeleton sx={{ display: (slide.image===null) ? "block": "none", padding:"15px"}} variant="rectangular" width="200px" height="200px"  />
+
+                <IconButton onClick={() => handleRegenerateImage(contentIndex)} color="primary" aria-label="Regenerate Image" component="label">
+                    <CachedRoundedIcon />
+                  </IconButton>
+
+                  {/* <IconButton onClick={() => playAudio(contentIndex)} color="primary" aria-label="Refine Image" component="label">
+                    <VolumeUpRoundedIcon />
+                  </IconButton> */}
               </Box>
             );
           })}
@@ -269,6 +339,7 @@ export function ConvertTextToVideoDialog(props) {
       </DialogContent>
     </>
   );
+
 }
 
 export default ConvertTextToVideoDialog;

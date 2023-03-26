@@ -55,6 +55,8 @@ import javax.sound.sampled.AudioSystem
 import com.mpatric.mp3agic.Mp3File
 
 import org.buildobjects.process.ProcBuilder
+import java.io.ByteArrayInputStream
+
 
 class AudioVideoServices {
  
@@ -73,11 +75,14 @@ class AudioVideoServices {
         def path = dir.toFile().getPath()
         def filename = audioFile.toFile().getName()
 
-        // cd $1
-        // RESULT=$(ffmpeg -hide_banner -i $2  dat-$2 2>&1)
-        // DURATION=$(echo $RESULT | grep Duration |  cut -d ',' -f4 | cut -d ' ' -f9)
-        // echo $DURATION
-        def output = ProcBuilder.run("/home/russdanner/crafter-installs/next/craftercms/crafter-authoring/temp/tomcat/duration.sh", path, filename)
+        genCmd(dir, 
+            "duration.sh",
+            "cd \$1\n" +
+            "RESULT=\$(ffmpeg -hide_banner -i \$2  dat-\$2 2>&1) \n" +
+            "DURATION=\$(echo \$RESULT | grep Duration |  cut -d ',' -f4 | cut -d ' ' -f9)\n" +
+            "echo \$DURATION\n")
+
+        def output = ProcBuilder.run(path+"/duration.sh", path, filename)
         def time = output.trim().split(":")
 
         def hours = Float.parseFloat(time[0])
@@ -88,7 +93,6 @@ class AudioVideoServices {
 
         return durationInSeconds
     }
-
 
     def cleanMp3(origAudioPath, cleanAudioPath) {
         Mp3File mp3file = new Mp3File(origAudioPath)
@@ -111,11 +115,11 @@ class AudioVideoServices {
     def convertMp3ToMp4(sourceDirectoryPath) {
        def path = sourceDirectoryPath.toFile().getPath()
 
-        //convert.sh
-        //cd $1
-        //ffmpeg -f lavfi -i color=c=black:s=1280x720:r=5 -i audio-full.mp3 -crf 0 -c:a copy -shortest audio-full-converted.mp4
-
-        def output = ProcBuilder.run("/home/russdanner/crafter-installs/next/craftercms/crafter-authoring/temp/tomcat/convert.sh", path)
+        genCmd(sourceDirectoryPath, 
+            "convert.sh",
+            "cd \$1\n" +
+            "ffmpeg -f lavfi -i color=c=black:s=1280x720:r=5 -i audio-full.mp3 -crf 0 -c:a copy -shortest audio-full-converted.mp4\n")
+        def output = ProcBuilder.run(path+"/convert.sh", path)
     }
 
     def addAudioToVideo(sourceVideoPath, sourceAudioPath, outputFilePath) {
@@ -123,19 +127,9 @@ class AudioVideoServices {
         MovieCreator mc = new MovieCreator()
         Movie video = mc.build(sourceVideoPath.toFile().getPath()) 
         Movie audio = mc.build(sourceAudioPath.toFile().getPath())
-        //sourceAudioPath.toFile().getPath()) 
-        // MP3TrackImpl audio=new MP3TrackImpl(new FileDataSourceImpl(sourceAudioPath.toFile().getPath()))
-        
-        // List<Track> videoTracks = video.getTracks();
-        // video.setTracks(new LinkedList<Track>());
-        // for (Track videoTrack : videoTracks) {
-        //     video.addTrack(new AppendTrack(videoTrack, videoTrack));
-        // }
 
         List<Track> audioTracks = audio.getTracks()
-        // for (Track audioTrack : audioTracks) {
-            video.addTrack(new AppendTrack(audioTracks[1]));
-        // }
+        video.addTrack(new AppendTrack(audioTracks[1]));
 
         def builder = new DefaultMp4Builder()
         def out = builder.build(video);
@@ -144,8 +138,6 @@ class AudioVideoServices {
         out.writeContainer(fos.getChannel())
         fos.close();
     }
-
-
 
     def generateVideoBySequenceImages(folderPath, outputVideoPath, slideDefinitions) 
     throws Exception {
@@ -172,7 +164,7 @@ class AudioVideoServices {
                     }
                 }
                 catch(encodeErr) {
-                    System.out.println("error encoding an image" + index  + " :"+encodeErr)
+                    Logger.error("error encoding an image" + index  + " :"+encodeErr)
                 }                
 
                 index++
@@ -183,4 +175,11 @@ class AudioVideoServices {
             NIOUtils.closeQuietly(out);
         }
     }
+
+    def genCmd(d, f, c) {
+        def cp = d.resolve(f)        
+        def path = d.toFile().getPath()
+        Files.copy(new ByteArrayInputStream(c.getBytes()), cp, StandardCopyOption.REPLACE_EXISTING);
+        cp.toFile().setExecutable(true)
+    } 
 }
