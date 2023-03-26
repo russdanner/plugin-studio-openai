@@ -28,6 +28,7 @@ import List from '@mui/material/List';
 import FormControl from '@mui/material/FormControl';
 import CachedRoundedIcon from '@mui/icons-material/CachedRounded';
 import VolumeUpRoundedIcon from '@mui/icons-material/VolumeUpRounded';
+import DeleteForeverRoundedIcon from '@mui/icons-material/DeleteForeverRounded';
 import { forkJoin } from 'rxjs';
 
 
@@ -82,7 +83,6 @@ export function ConvertTextToVideoDialog(props) {
   const PLUGIN_SERVICE_BASE = '/studio/api/2/plugin/script/plugins/org/rd/plugin/openai/openai';
 
   const handleSourceChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    alert("Text is the only supported source at this time.")
     setSource(event.target.value as string);
   };
 
@@ -211,6 +211,12 @@ export function ConvertTextToVideoDialog(props) {
     var reportWindow = window.open(finalDownloadUrl);
   }
 
+  const handleDeleteSlide = (index) => {
+    let slides = generatedContent
+    slides.splice(index, 1)
+    setGeneratedContent([...slides])
+  }
+
   const playAudio = (index) => {
 
   }
@@ -252,8 +258,8 @@ export function ConvertTextToVideoDialog(props) {
             onChange={handleSourceChange}
           >
             <FormControlLabel value="text" control={<Radio />} label="Text" />
-            <FormControlLabel value="content item" control={<Radio />} label="Content" />
-            <FormControlLabel value="web" control={<Radio />} label="Web URL" />
+            {/* <FormControlLabel value="item" control={<Radio />} label="Content" /> */}
+            <FormControlLabel value="url" control={<Radio />} label="Web URL" />
 
           </RadioGroup>
         </FormControl>
@@ -277,7 +283,7 @@ export function ConvertTextToVideoDialog(props) {
           </Button>
 
           <Button disabled={finalDownloadUrl===null} onClick={handleDownloadFinal} variant="outlined" sx={{ mr: 1 }}>
-            DownloadFinal
+            Download Video
           </Button>
           
         </DialogActions>
@@ -323,6 +329,10 @@ export function ConvertTextToVideoDialog(props) {
 
                 <img style={{ width: '200px' }} width="200px" src={slide.image} />
                 <Skeleton sx={{ display: (slide.image===null) ? "block": "none", padding:"15px"}} variant="rectangular" width="200px" height="200px"  />
+
+                <IconButton onClick={() => handleDeleteSlide(contentIndex)} color="primary" aria-label="Delete Slide" component="label">
+                    <DeleteForeverRoundedIcon />
+                  </IconButton>
 
                 <IconButton onClick={() => handleRegenerateImage(contentIndex)} color="primary" aria-label="Regenerate Image" component="label">
                     <CachedRoundedIcon />

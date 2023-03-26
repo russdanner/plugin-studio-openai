@@ -36,26 +36,36 @@ class GenerativeContentServices {
         aiServices = new AiServices(pluginConfig)
     }    
 
-    /**
-     * Generate a video from a URL
-     */
-    def generateVideoFromUrl(contentUrl) {
+    def generateVideoFromUrl(contentUrl, mainIdea) {
         
         // capture sentences form the page
         def htmlPage = httpGet(contentUrl)
+        def nodes = htmlPage.body.childNodes()
 
-        def sourceText = htmlPage.body.toString().replaceAll("<[^>]*>", "")
-            sourceText = sourceText.replaceAll("\n", "")
-            sourceText = sourceText.replaceAll("\t", "")
-            sourceText = sourceText.replaceAll("  ", "")
-            sourceText = sourceText.replaceAll("&nbsp;", " ")
+         def sourceText = ""
+         def nonTextTags = ["nav", "header", "footer", "#comment", "svg", "script", "noscript", "style", "iframe", "audio", "video", "img", "a", "video"]
+
+        nodes.each { node ->
+            def nodeName = node.nodeName().toLowerCase()
+            if(!nonTextTags.contains(nodeName)) {
+                sourceText += node.toString()
+            }
+        }
+
+        // strip tages
+        sourceText = sourceText.replaceAll("<[^>]*>", "")
+
+        // strip whitespace
+        sourceText = sourceText.replaceAll("\n", " ")
+        sourceText = sourceText.replaceAll("\t", " ")
+        sourceText = sourceText.replaceAll("  ", " ")
+        sourceText = sourceText.replaceAll("&nbsp;", " ")
 
         // prepare movie
-        def slideDefinitions = generateVideoFromText(sourceText)
+        def slideDefinitions = generateVideoFromText(sourceText, mainIdea)
 
         return slideDefinitions
     }
-
 
     /**
      * prepare a video from text

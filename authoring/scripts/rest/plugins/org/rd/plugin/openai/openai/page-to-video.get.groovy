@@ -11,11 +11,16 @@ def generativeContentServices = new GenerativeContentServices(pluginConfig)
 def text = ""
 if("text".equals(source)) {
     text = content
+    result.slides = generativeContentServices.generateVideoFromText(text, mainIdea)
+
+}
+else if("url".equals(source)) {
+    text = content
+    result.slides = generativeContentServices.generateVideoFromUrl(text, mainIdea)
 }
 else {
-    text.content
+    return "unsupported source"
 }
 
-result.slides = generativeContentServices.generateVideoFromText(text, mainIdea)
 
 return result

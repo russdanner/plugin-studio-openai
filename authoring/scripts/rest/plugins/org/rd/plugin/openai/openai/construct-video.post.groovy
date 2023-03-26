@@ -11,6 +11,7 @@ def json = IOUtils.toString(request.getReader())
 
 def slurper = new groovy.json.JsonSlurper()
 def slides = slurper.parseText(json)
+
 result.id = generativeContentServices.prepareMovie(slides)
 
 return result

@@ -8,6 +8,7 @@ const ListItem = craftercms.libs.MaterialUI.ListItem && Object.prototype.hasOwnP
 const List = craftercms.libs.MaterialUI.List && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.List, 'default') ? craftercms.libs.MaterialUI.List['default'] : craftercms.libs.MaterialUI.List;
 const FormControl = craftercms.libs.MaterialUI.FormControl && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.FormControl, 'default') ? craftercms.libs.MaterialUI.FormControl['default'] : craftercms.libs.MaterialUI.FormControl;
 const CachedRoundedIcon = craftercms.utils.constants.components.get('@mui/icons-material/CachedRounded') && Object.prototype.hasOwnProperty.call(craftercms.utils.constants.components.get('@mui/icons-material/CachedRounded'), 'default') ? craftercms.utils.constants.components.get('@mui/icons-material/CachedRounded')['default'] : craftercms.utils.constants.components.get('@mui/icons-material/CachedRounded');
+const DeleteForeverRoundedIcon = craftercms.utils.constants.components.get('@mui/icons-material/DeleteForeverRounded') && Object.prototype.hasOwnProperty.call(craftercms.utils.constants.components.get('@mui/icons-material/DeleteForeverRounded'), 'default') ? craftercms.utils.constants.components.get('@mui/icons-material/DeleteForeverRounded')['default'] : craftercms.utils.constants.components.get('@mui/icons-material/DeleteForeverRounded');
 const { forkJoin } = craftercms.libs.rxjs;
 const IconButton$1 = craftercms.libs.MaterialUI.IconButton && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.IconButton, 'default') ? craftercms.libs.MaterialUI.IconButton['default'] : craftercms.libs.MaterialUI.IconButton;
 const Button$1 = craftercms.libs.MaterialUI.Button && Object.prototype.hasOwnProperty.call(craftercms.libs.MaterialUI.Button, 'default') ? craftercms.libs.MaterialUI.Button['default'] : craftercms.libs.MaterialUI.Button;
@@ -90,7 +91,6 @@ function ConvertTextToVideoDialog(props) {
     var _h = React.useState(''), sourceContent = _h[0], setSourceContent = _h[1];
     var PLUGIN_SERVICE_BASE = '/studio/api/2/plugin/script/plugins/org/rd/plugin/openai/openai';
     var handleSourceChange = function (event) {
-        alert("Text is the only supported source at this time.");
         setSource(event.target.value);
     };
     var handleConstructVideo = function () {
@@ -189,6 +189,11 @@ function ConvertTextToVideoDialog(props) {
     var handleDownloadFinal = function () {
         window.open(finalDownloadUrl);
     };
+    var handleDeleteSlide = function (index) {
+        var slides = generatedContent;
+        slides.splice(index, 1);
+        setGeneratedContent(__spreadArray([], slides, true));
+    };
     return (React.createElement(React.Fragment, null,
         React.createElement(DialogContent, null,
             React.createElement(FormControl, { margin: "normal", fullWidth: true },
@@ -197,8 +202,7 @@ function ConvertTextToVideoDialog(props) {
                 React.createElement(FormLabel, { id: "demo-row-radio-buttons-group-label" }, "Content Source"),
                 React.createElement(RadioGroup, { row: true, "aria-labelledby": "demo-row-radio-buttons-group-label", name: "row-radio-buttons-group", value: source, onChange: handleSourceChange },
                     React.createElement(FormControlLabel, { value: "text", control: React.createElement(Radio, null), label: "Text" }),
-                    React.createElement(FormControlLabel, { value: "content item", control: React.createElement(Radio, null), label: "Content" }),
-                    React.createElement(FormControlLabel, { value: "web", control: React.createElement(Radio, null), label: "Web URL" }))),
+                    React.createElement(FormControlLabel, { value: "url", control: React.createElement(Radio, null), label: "Web URL" }))),
             React.createElement(FormControl, { margin: "normal", fullWidth: true },
                 React.createElement(TextField, { defaultValue: "", onBlur: function (e) { return setSourceContent(e.target.value); }, id: "outlined-basic", label: "Text", variant: "outlined" })),
             React.createElement(FormControl, { margin: "normal", fullWidth: true },
@@ -206,7 +210,7 @@ function ConvertTextToVideoDialog(props) {
             React.createElement(DialogActions, null,
                 React.createElement(Button, { onClick: handleGenerate, variant: "outlined", sx: { mr: 1 } }, "Generate"),
                 React.createElement(Button, { disabled: generatedContent.length === 0, onClick: handleConstructVideo, variant: "outlined", sx: { mr: 1 } }, "Construct Video"),
-                React.createElement(Button, { disabled: finalDownloadUrl === null, onClick: handleDownloadFinal, variant: "outlined", sx: { mr: 1 } }, "DownloadFinal")),
+                React.createElement(Button, { disabled: finalDownloadUrl === null, onClick: handleDownloadFinal, variant: "outlined", sx: { mr: 1 } }, "Download Video")),
             generatedContent &&
                 generatedContent.map(function (slide, contentIndex) {
                     return (React.createElement(Box, { key: contentIndex, sx: { display: (fetching == false) ? "block" : "none", padding: "15px" } },
@@ -227,6 +231,8 @@ function ConvertTextToVideoDialog(props) {
                                 }, defaultValue: slide.distillation, onBlur: function (e) { return handleDistilationUpdate(e.target.value, contentIndex); }, multiline: true, variant: "filled" })),
                         React.createElement("img", { style: { width: '200px' }, width: "200px", src: slide.image }),
                         React.createElement(Skeleton, { sx: { display: (slide.image === null) ? "block" : "none", padding: "15px" }, variant: "rectangular", width: "200px", height: "200px" }),
+                        React.createElement(IconButton, { onClick: function () { return handleDeleteSlide(contentIndex); }, color: "primary", "aria-label": "Delete Slide", component: "label" },
+                            React.createElement(DeleteForeverRoundedIcon, null)),
                         React.createElement(IconButton, { onClick: function () { return handleRegenerateImage(contentIndex); }, color: "primary", "aria-label": "Regenerate Image", component: "label" },
                             React.createElement(CachedRoundedIcon, null))));
                 }),
