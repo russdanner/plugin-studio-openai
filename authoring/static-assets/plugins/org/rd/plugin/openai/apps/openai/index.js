@@ -353,8 +353,8 @@ function GenerateContentDialog(props) {
     var handleAskChange = function (event) {
         setAsk(event.target.value);
     };
-    var copyResult = function () {
-        copyToClipboard(generatedContent[0]);
+    var handleCopyResult = function (index) {
+        copyToClipboard(generatedContent[index]);
         dispatch(showSystemNotification({
             message: 'Copied',
             options: { variant: 'success', autoHideDuration: 1500 }
@@ -410,7 +410,7 @@ function GenerateContentDialog(props) {
                                     'padding-right': '20px',
                                     mb: 2
                                 }, value: content, multiline: true }),
-                            React.createElement(IconButton, { onClick: copyResult, color: "primary", "aria-label": "Copy to Clipboard", component: "label" },
+                            React.createElement(IconButton, { onClick: function () { return handleCopyResult(contentIndex); }, color: "primary", "aria-label": "Copy to Clipboard", component: "label" },
                                 React.createElement(ContentCopyRoundedIcon, null))));
                     })))),
             React.createElement(AnswerSkeleton, { numOfItems: 5, renderBody: fetching }))));

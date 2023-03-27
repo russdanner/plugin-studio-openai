@@ -94,8 +94,8 @@ export function GenerateContentDialog(props) {
     setAsk(event.target.value as string);
   };
 
-  const copyResult = () => {
-    copyToClipboard(generatedContent[0]);
+  const handleCopyResult = (index) => {
+    copyToClipboard(generatedContent[index]);
 
     dispatch(
       showSystemNotification({
@@ -213,7 +213,7 @@ export function GenerateContentDialog(props) {
                         multiline
                       />
 
-                      <IconButton onClick={copyResult} color="primary" aria-label="Copy to Clipboard" component="label">
+                      <IconButton onClick={() => handleCopyResult(contentIndex)} color="primary" aria-label="Copy to Clipboard" component="label">
                         <ContentCopyRoundedIcon />
                       </IconButton>
                     </li>
